@@ -10,44 +10,52 @@ datasource db {
   schemas  = ["auth", "catalog", "common", "identity", "logs", "sales"]
 }
 
-model role {
-  role_id     String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+model Role {
+  id          String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name        String           @db.VarChar
   description String           @db.VarChar
-  permissions rolepermission[]
-  created_at  DateTime         @default(now()) @db.Timestamp(6)
-  updated_at  DateTime?        @db.Timestamp(6)
-  user_roles  user_roles[]
+  permissions RolePermission[]
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt   DateTime?        @map("updated_at") @db.Timestamp(6)
 
+  userRoles UserRoles[]
+
+  @@map("role")
   @@schema("auth")
 }
 
-model user {
-  user_id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email             String       @unique @db.VarChar
-  password_hash     String       @db.VarChar
-  user_type         usertype
-  token_version     String?      @default(dbgenerated("gen_random_uuid()")) @db.VarChar
-  created_at        DateTime     @default(now()) @db.Timestamp(6)
-  updated_at        DateTime?    @db.Timestamp(6)
-  status            userstatus
-  status_updated_at DateTime     @db.Timestamp(6)
-  user_roles        user_roles[]
-  customer          customer[]
+model User {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email        String   @unique @db.VarChar
+  passwordHash String   @map("password_hash") @db.VarChar
+  userType     UserType
+  tokenVersion String?  @default(dbgenerated("gen_random_uuid()")) @map("token_version") @db.VarChar
 
+  createdAt       DateTime   @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt       DateTime?  @map("updated_at") @db.Timestamp(6)
+  status          UserStatus
+  statusUpdatedAt DateTime   @map("status_updated_at") @db.Timestamp(6)
+
+  userRoles UserRoles[]
+  customer  Customer[]
+
+  @@map("user")
   @@schema("auth")
 }
 
-model user_roles {
-  user_id     String    @db.Uuid
-  role_id     String    @db.Uuid
-  valid_until DateTime? @db.Timestamp(6)
-  created_at  DateTime  @default(now()) @db.Timestamp(6)
-  updated_at  DateTime? @db.Timestamp(6)
-  role        role      @relation(fields: [role_id], references: [role_id], onDelete: NoAction, onUpdate: NoAction)
-  user        user      @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+model UserRoles {
+  userId     String    @db.Uuid
+  roleId     String    @db.Uuid
+  validUntil DateTime? @map("valid_until") @db.Timestamp(6)
 
-  @@id([user_id, role_id])
+  role Role @relation(fields: [roleId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user User @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt DateTime? @map("updated_at") @db.Timestamp(6)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
   @@schema("auth")
 }
 
@@ -68,15 +76,16 @@ model Product {
 }
 
 model ProductFile {
-  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  productVariationId String    @db.Uuid
-  fileExtension      String    @db.VarChar
+  id                 String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productVariationId String  @db.Uuid
+  fileExtension      String  @db.VarChar
   url                String
-  altText            String?   @db.VarChar
-  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt          DateTime? @map("updated_at") @db.Timestamp(6)
+  altText            String? @db.VarChar
 
   productVariation ProductVariation @relation(fields: [productVariationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt DateTime? @map("updated_at") @db.Timestamp(6)
 
   @@map("product_file")
   @@schema("catalog")
@@ -85,12 +94,12 @@ model ProductFile {
 model Option {
   id   String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name String @db.VarChar
-  code String @unique @db.VarChar
-
-  values OptionValue[]
+  code String @db.VarChar
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt DateTime? @map("updated_at") @db.Timestamp(6)
+
+  values OptionValue[]
 
   @@map("option")
   @@schema("catalog")
@@ -99,18 +108,19 @@ model Option {
 model OptionValue {
   id       String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name     String @db.VarChar
-  code     String @unique @db.VarChar
+  code     String @db.VarChar
   optionId String @map("option_id") @db.Uuid
 
   option Option @relation(fields: [optionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  variations Feature[]
-
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt       DateTime? @map("updated_at") @db.Timestamp(6)
-  status          rowstatus
+  status          RowStatus
   statusUpdatedAt DateTime  @map("status_updated_at") @db.Timestamp(6)
 
+  variations Feature[]
+
+  @@unique([optionId, code])
   @@map("option_value")
   @@schema("catalog")
 }
@@ -123,7 +133,7 @@ model Feature {
   optionValue      OptionValue      @relation(fields: [optionValueId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   productVariation ProductVariation @relation(fields: [productVariationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  status          rowstatus
+  status          RowStatus
   statusUpdatedAt DateTime  @map("status_updated_at") @db.Timestamp(6)
 
   @@map("feature")
@@ -156,31 +166,37 @@ model ProductVariation {
   @@schema("catalog")
 }
 
-model customer {
-  customer_id             String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id                 String                  @db.Uuid
-  first_name              String                  @db.VarChar
-  last_name               String                  @db.VarChar
-  address                 String?                 @db.VarChar
-  phone_number            String?                 @db.VarChar
-  birthday                DateTime?               @db.Date
-  created_at              DateTime                @default(now()) @db.Timestamp(6)
-  updated_at              DateTime?               @db.Timestamp(6)
-  user                    user                    @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
-  customer_liked_products CustomerLikedProducts[]
-  order_header            order_header[]
-  shopping_cart_header    shopping_cart_header[]
+model Customer {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  firstName   String    @map("first_name") @db.VarChar
+  lastName    String    @map("last_name") @db.VarChar
+  address     String?   @db.VarChar
+  phoneNumber String?   @map("phone_number") @db.VarChar
+  birthday    DateTime? @db.Date
 
+  user User @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt DateTime? @map("updated_at") @db.Timestamp(6)
+
+  customerLikedProducts CustomerLikedProducts[]
+  orderHeader           OrderHeader[]
+  shoppingCartHeader    ShoppingCartHeader[]
+
+  @@map("customer")
   @@schema("identity")
 }
 
 model CustomerLikedProducts {
-  customerId         String           @map("customer_id") @db.Uuid
-  productVariationId String           @map("product_variation_id") @db.Uuid
-  created_at         DateTime         @default(now()) @db.Timestamp(6)
-  updated_at         DateTime?        @db.Timestamp(6)
-  customer           customer         @relation(fields: [customerId], references: [customer_id], onDelete: NoAction, onUpdate: NoAction)
-  product_variation  ProductVariation @relation(fields: [productVariationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  customerId         String @map("customer_id") @db.Uuid
+  productVariationId String @map("product_variation_id") @db.Uuid
+
+  customer         Customer         @relation(fields: [customerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  productVariation ProductVariation @relation(fields: [productVariationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt DateTime? @map("updated_at") @db.Timestamp(6)
 
   @@id([customerId, productVariationId])
   @@map("customer_like_products")
@@ -188,177 +204,202 @@ model CustomerLikedProducts {
 }
 
 model OrderDetailDiscount {
-  order_discount_id       String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  order_detail_id         String    @db.Uuid
-  promotional_discount_id String    @db.Uuid
-  required_amount         Int
-  discount_percentage     Decimal?  @db.Decimal
-  bonus_amount            Int?
-  created_at              DateTime  @default(now()) @db.Timestamp(6)
-  updated_at              DateTime? @db.Timestamp(6)
-  status                  rowstatus
-  status_updated_at       DateTime  @db.Timestamp(6)
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderDetailId         String   @map("order_detail_id") @db.Uuid
+  promotionalDiscountId String   @map("promotional_discount_id") @db.Uuid
+  requiredAmount        Int      @map("required_amount")
+  discountPercentage    Decimal? @map("discount_percentage") @db.Decimal
+  bonusQuantity         Int?     @map("bonus_amount")
 
-  order_detail         OrderDetail         @relation(fields: [order_detail_id], references: [order_detail_id], onDelete: NoAction, onUpdate: NoAction)
-  promotional_discount PromotionalDiscount @relation(fields: [promotional_discount_id], references: [promotional_discount_id], onDelete: NoAction, onUpdate: NoAction)
+  orderDetail         OrderDetail         @relation(fields: [orderDetailId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  promotionalDiscount PromotionalDiscount @relation(fields: [promotionalDiscountId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt       DateTime? @map("updated_at") @db.Timestamp(6)
+  status          RowStatus
+  statusUpdatedAt DateTime  @map("status_updated_at") @db.Timestamp(6)
+
+  @@map("order_detail_discount")
   @@schema("logs")
 }
 
 model OrderHeaderStatus {
-  order_status_log_id String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  order_header_id     String       @db.Uuid
-  order_status_id     String       @db.Uuid
-  notes               String?      @db.VarChar
-  created_at          DateTime     @default(now()) @db.Timestamp(6)
-  updated_at          DateTime?    @db.Timestamp(6)
-  status              rowstatus
-  status_updated_at   DateTime     @db.Timestamp(6)
-  order_header        order_header @relation(fields: [order_header_id], references: [order_header_id], onDelete: NoAction, onUpdate: NoAction)
-  order_status        order_status @relation(fields: [order_status_id], references: [order_status_id], onDelete: NoAction, onUpdate: NoAction)
+  id            String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderHeaderId String  @map("order_header_id") @db.Uuid
+  orderStatusId String  @map("order_status_id") @db.Uuid
+  notes         String? @db.VarChar
 
+  orderHeader OrderHeader @relation(fields: [orderHeaderId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  orderStatus OrderStatus @relation(fields: [orderStatusId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt       DateTime? @map("updated_at") @db.Timestamp(6)
+  status          RowStatus
+  statusUpdatedAt DateTime  @map("status_updated_at") @db.Timestamp(6)
+
+  @@map("order_header_status")
   @@schema("logs")
 }
 
 model OrderDetail {
-  order_detail_id       String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  order_header_id       String                @db.Uuid
-  product_name          String                @db.VarChar
-  product_variation_id  String                @db.Uuid
-  quantity              Decimal               @db.Decimal
-  subtotal              Decimal               @db.Decimal
-  created_at            DateTime              @default(now()) @db.Timestamp(6)
-  updated_at            DateTime?             @db.Timestamp(6)
-  status                rowstatus
-  status_updated_at     DateTime              @db.Timestamp(6)
-  order_detail_discount OrderDetailDiscount[]
-  order_header          order_header          @relation(fields: [order_header_id], references: [order_header_id], onDelete: NoAction, onUpdate: NoAction)
-  product_variation     ProductVariation      @relation(fields: [product_variation_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id                 String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderHeaderId      String  @map("order_header_id") @db.Uuid
+  productName        String  @map("product_name") @db.VarChar
+  productVariationId String  @map("product_variation_id") @db.Uuid
+  quantity           Decimal @db.Decimal
+  subtotal           Decimal @db.Decimal
+
+  orderHeader      OrderHeader      @relation(fields: [orderHeaderId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  productVariation ProductVariation @relation(fields: [productVariationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt       DateTime? @map("updated_at") @db.Timestamp(6)
+  status          RowStatus
+  statusUpdatedAt DateTime  @map("status_updated_at") @db.Timestamp(6)
+
+  orderDetailDiscount OrderDetailDiscount[]
 
   @@map("order_detail")
   @@schema("sales")
 }
 
-model order_header {
-  order_header_id     String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  customer_id         String              @db.Uuid
-  serial_number       String              @db.VarChar
-  subtotal            Decimal             @db.Decimal
-  created_at          DateTime            @default(now()) @db.Timestamp(6)
-  updated_at          DateTime?           @db.Timestamp(6)
-  order_header_status OrderHeaderStatus[]
-  order_detail        OrderDetail[]
-  customer            customer            @relation(fields: [customer_id], references: [customer_id], onDelete: NoAction, onUpdate: NoAction)
-  order_payment       order_payment[]
+model OrderHeader {
+  id         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  customerId String  @map("customer_id") @db.Uuid
+  subtotal   Decimal @db.Decimal
 
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt DateTime? @map("updated_at") @db.Timestamp(6)
+
+  orderHeaderStatus OrderHeaderStatus[]
+  orderPayment      OrderPayment[]
+  orderDetail       OrderDetail[]
+
+  @@map("order_header")
   @@schema("sales")
 }
 
-model order_payment {
-  order_payment_id  String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  order_header_id   String        @db.Uuid
-  stripe_payment_id String        @db.VarChar
-  amount            Decimal       @db.Decimal
-  currency_code     String        @db.VarChar
-  status_message    String        @db.VarChar
-  created_at        DateTime      @default(now()) @db.Timestamp(6)
-  updated_at        DateTime?     @db.Timestamp(6)
-  status            paymentstatus
-  status_updated_at DateTime      @db.Timestamp(6)
-  order_header      order_header  @relation(fields: [order_header_id], references: [order_header_id], onDelete: NoAction, onUpdate: NoAction)
+model OrderPayment {
+  id              String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderHeaderId   String  @map("order_header_id") @db.Uuid
+  stripePaymentId String  @map("stripe_payment_id") @db.VarChar
+  amount          Decimal @db.Decimal
+  currencyCode    String  @map("currency_code") @db.VarChar
+  statusMessage   String  @map("status_message") @db.VarChar
 
+  orderHeader OrderHeader @relation(fields: [orderHeaderId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt       DateTime?     @map("updated_at") @db.Timestamp(6)
+  status          PaymentStatus
+  statusUpdatedAt DateTime      @map("status_updated_at") @db.Timestamp(6)
+
+  @@map("order_payment")
   @@schema("sales")
 }
 
-model order_status {
-  order_status_id     String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name                String              @db.VarChar
-  description         String              @db.VarChar
-  required_status_id  String?             @db.Uuid
-  created_at          DateTime            @default(now()) @db.Timestamp(6)
-  updated_at          DateTime?           @db.Timestamp(6)
-  status              rowstatus
-  status_updated_at   DateTime            @db.Timestamp(6)
-  order_header_status OrderHeaderStatus[]
-  order_status        order_status?       @relation("order_statusToorder_status", fields: [required_status_id], references: [order_status_id], onDelete: NoAction, onUpdate: NoAction)
-  other_order_status  order_status[]      @relation("order_statusToorder_status")
+model OrderStatus {
+  id          String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String @db.VarChar
+  description String @db.VarChar
 
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt       DateTime? @map("updated_at") @db.Timestamp(6)
+  status          RowStatus
+  statusUpdatedAt DateTime  @map("status_updated_at") @db.Timestamp(6)
+
+  orderHeaderStatus OrderHeaderStatus[]
+
+  @@map("order_status")
   @@schema("sales")
 }
 
 model PromotionalDiscount {
-  promotional_discount_id String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name                    String                @db.VarChar
-  product_variation_id    String                @db.Uuid
-  discount_type           discounttype
-  required_amount         Int
-  bonus_amount            Int?
-  discount_percentage     Decimal?              @db.Decimal
-  valid_since             DateTime?             @db.Timestamp(6)
-  valid_until             DateTime?             @db.Timestamp(6)
-  available_stock         Int?
-  created_at              DateTime              @default(now()) @db.Timestamp(6)
-  updated_at              DateTime?             @db.Timestamp(6)
-  status                  promotionstatus
-  status_updated_at       DateTime              @db.Timestamp(6)
-  order_detail_discount   OrderDetailDiscount[]
-  product_variation       ProductVariation      @relation(fields: [product_variation_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id                 String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name               String       @db.VarChar
+  productVariationId String       @map("product_variation_id") @db.Uuid
+  discountType       DiscountType
+  requiredAmount     Int          @map("required_amount")
+  bonusQuantity      Int?         @map("bonus_amount")
+  discountPercentage Decimal?     @map("discount_percentage") @db.Decimal
+  validSince         DateTime?    @map("valid_since") @db.Timestamp(6)
+  validUntil         DateTime?    @map("valid_until") @db.Timestamp(6)
+  availableStock     Int?         @map("available_stock")
+
+  productVariation ProductVariation @relation(fields: [productVariationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt       DateTime?       @map("updated_at") @db.Timestamp(6)
+  status          PromotionStatus
+  statusUpdatedAt DateTime        @map("status_updated_at") @db.Timestamp(6)
+
+  orderDetailDiscount OrderDetailDiscount[]
 
   @@map("promotional_discount")
   @@schema("sales")
 }
 
 model ShoppingCartDetail {
-  shopping_cart_detail_id String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  shopping_cart_header_id String               @db.Uuid
-  product_variation_id    String               @db.Uuid
-  quantity                Decimal              @db.Decimal
-  discount_percentage     Decimal?             @db.Decimal
-  created_at              DateTime             @default(now()) @db.Timestamp(6)
-  updated_at              DateTime?            @db.Timestamp(6)
-  product_variation       ProductVariation     @relation(fields: [product_variation_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  shopping_cart_header    shopping_cart_header @relation(fields: [shopping_cart_header_id], references: [shopping_cart_header_id], onDelete: NoAction, onUpdate: NoAction)
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  shoppingCartHeaderId String    @map("shopping_cart_header_id") @db.Uuid
+  productVariationId   String    @map("product_variation_id") @db.Uuid
+  quantity             Decimal   @db.Decimal
+  discountPercentage   Decimal?  @map("discount_percentage") @db.Decimal
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt            DateTime? @map("updated_at") @db.Timestamp(6)
+
+  productVariation   ProductVariation   @relation(fields: [productVariationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  shoppingCartHeader ShoppingCartHeader @relation(fields: [shoppingCartHeaderId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("shopping_cart_detail")
   @@schema("sales")
 }
 
-model shopping_cart_header {
-  shopping_cart_header_id String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name                    String               @db.VarChar
-  due_date                DateTime?            @db.Timestamp(6)
-  customer_id             String               @db.Uuid
-  created_at              DateTime             @default(now()) @db.Timestamp(6)
-  updated_at              DateTime?            @db.Timestamp(6)
-  shopping_cart_detail    ShoppingCartDetail[]
-  customer                customer             @relation(fields: [customer_id], references: [customer_id], onDelete: NoAction, onUpdate: NoAction)
+model ShoppingCartHeader {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name       String    @db.VarChar
+  dueDate    DateTime? @map("due_date") @db.Timestamp(6)
+  customerId String    @map("customer_id") @db.Uuid
 
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt DateTime? @map("updated_at") @db.Timestamp(6)
+
+  shoppingCartDetails ShoppingCartDetail[]
+
+  @@map("shopping_cart_header")
   @@schema("sales")
 }
 
-enum rolepermission {
+enum RolePermission {
   READ
   WRITE
   DELETE
   UPDATE
   MANAGE_USERS
 
+  @@map("role_permission")
   @@schema("auth")
 }
 
-enum userstatus {
+enum UserStatus {
   ACTIVE
   INACTIVE
   BANNED
   PENDING
 
+  @@map("user_status")
   @@schema("auth")
 }
 
-enum usertype {
+enum UserType {
   CUSTOMER
   MANAGER
 
+  @@map("user_type")
   @@schema("auth")
 }
 
@@ -372,35 +413,39 @@ enum ProductStatus {
   @@schema("catalog")
 }
 
-enum rowstatus {
+enum RowStatus {
   ACTIVE
   INVISIBLE
   DELETED
 
+  @@map("row_status")
   @@schema("common")
 }
 
-enum discounttype {
+enum DiscountType {
   PERCENTAGE
   BONUS
 
+  @@map("discount_type")
   @@schema("sales")
 }
 
-enum paymentstatus {
+enum PaymentStatus {
   PENDING
   COMPLETED
   FAILED
   REFUNDED
 
+  @@map("payment_status")
   @@schema("sales")
 }
 
-enum promotionstatus {
+enum PromotionStatus {
   ACTIVE
   OUT_OF_STOCK
   EXPIRED
   DELETED
 
+  @@map("promotion_status")
   @@schema("sales")
 }
