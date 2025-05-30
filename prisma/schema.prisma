@@ -94,7 +94,7 @@ model ProductFile {
 model Option {
   id   String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name String @db.VarChar
-  code String @db.VarChar
+  code String @unique @db.VarChar
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt DateTime? @map("updated_at") @db.Timestamp(6)
@@ -157,9 +157,9 @@ model ProductVariation {
 
   productFiles         ProductFile[]
   likedByCustomers     CustomerLikedProducts[]
-  orderDetails         OrderDetail[]
+  orderItems           OrderItem[]
   promotionalDiscounts PromotionalDiscount[]
-  cartDetails          ShoppingCartDetail[]
+  cartDetails          ShopCartItem[]
   features             Feature[]
 
   @@map("product_variation")
@@ -168,7 +168,7 @@ model ProductVariation {
 
 model Customer {
   id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId      String    @map("user_id") @db.Uuid
+  userId      String    @unique @map("user_id") @db.Uuid
   firstName   String    @map("first_name") @db.VarChar
   lastName    String    @map("last_name") @db.VarChar
   address     String?   @db.VarChar
@@ -182,7 +182,7 @@ model Customer {
 
   customerLikedProducts CustomerLikedProducts[]
   orderHeader           OrderHeader[]
-  shoppingCartHeader    ShoppingCartHeader[]
+  shoppingCartHeader    ShopCartHeader[]
 
   @@map("customer")
   @@schema("identity")
@@ -211,7 +211,7 @@ model OrderDetailDiscount {
   discountPercentage    Decimal? @map("discount_percentage") @db.Decimal
   bonusQuantity         Int?     @map("bonus_amount")
 
-  orderDetail         OrderDetail         @relation(fields: [orderDetailId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  orderItems          OrderItem           @relation(fields: [orderDetailId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   promotionalDiscount PromotionalDiscount @relation(fields: [promotionalDiscountId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
@@ -241,7 +241,7 @@ model OrderHeaderStatus {
   @@schema("logs")
 }
 
-model OrderDetail {
+model OrderItem {
   id                 String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   orderHeaderId      String  @map("order_header_id") @db.Uuid
   productName        String  @map("product_name") @db.VarChar
@@ -259,7 +259,7 @@ model OrderDetail {
 
   orderDetailDiscount OrderDetailDiscount[]
 
-  @@map("order_detail")
+  @@map("order_item")
   @@schema("sales")
 }
 
@@ -275,7 +275,7 @@ model OrderHeader {
 
   orderHeaderStatus OrderHeaderStatus[]
   orderPayment      OrderPayment[]
-  orderDetail       OrderDetail[]
+  orderItems        OrderItem[]
 
   @@map("order_header")
   @@schema("sales")
@@ -335,29 +335,33 @@ model PromotionalDiscount {
   status          PromotionStatus
   statusUpdatedAt DateTime        @map("status_updated_at") @db.Timestamp(6)
 
-  orderDetailDiscount OrderDetailDiscount[]
+  orderDetailDiscounts OrderDetailDiscount[]
+  shopCartItemDiscount ShopCartItemDiscount[]
 
   @@map("promotional_discount")
   @@schema("sales")
 }
 
-model ShoppingCartDetail {
+model ShopCartItem {
   id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   shoppingCartHeaderId String    @map("shopping_cart_header_id") @db.Uuid
   productVariationId   String    @map("product_variation_id") @db.Uuid
+  productName          String
   quantity             Decimal   @db.Decimal
-  discountPercentage   Decimal?  @map("discount_percentage") @db.Decimal
+  subtotal             Decimal   @db.Money
   createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt            DateTime? @map("updated_at") @db.Timestamp(6)
 
-  productVariation   ProductVariation   @relation(fields: [productVariationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  shoppingCartHeader ShoppingCartHeader @relation(fields: [shoppingCartHeaderId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  productVariation   ProductVariation @relation(fields: [productVariationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  shoppingCartHeader ShopCartHeader   @relation(fields: [shoppingCartHeaderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  @@map("shopping_cart_detail")
+  shopCartItemDiscounts ShopCartItemDiscount[]
+
+  @@map("shop_cart_item")
   @@schema("sales")
 }
 
-model ShoppingCartHeader {
+model ShopCartHeader {
   id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name       String    @db.VarChar
   dueDate    DateTime? @map("due_date") @db.Timestamp(6)
@@ -368,10 +372,29 @@ model ShoppingCartHeader {
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt DateTime? @map("updated_at") @db.Timestamp(6)
 
-  shoppingCartDetails ShoppingCartDetail[]
+  cartItems ShopCartItem[]
 
-  @@map("shopping_cart_header")
+  @@map("shop_cart_header")
   @@schema("sales")
+}
+
+model ShopCartItemDiscount {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  shopCartItemId        String   @map("shop_cart_item_id") @db.Uuid
+  promotionalDiscountId String   @map("promotional_discount_id") @db.Uuid
+  requiredAmount        Int      @map("required_amount")
+  discountPercentage    Decimal? @map("discount_percentage") @db.Decimal
+  bonusQuantity         Int?     @map("bonus_amount")
+
+  shopCartItem        ShopCartItem        @relation(fields: [shopCartItemId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  promotionalDiscount PromotionalDiscount @relation(fields: [promotionalDiscountId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt DateTime? @map("updated_at") @db.Timestamp(6)
+
+  @@unique([shopCartItemId, promotionalDiscountId])
+  @@map("shop_cart_item_discount")
+  @@schema("logs")
 }
 
 enum RolePermission {

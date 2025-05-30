@@ -1,0 +1,44 @@
+import { UseGuards } from '@nestjs/common';
+import { Resolver, Mutation, Args, Query } from '@nestjs/graphql';
+import { PromotionalDiscountService } from '../services/promotional-discount.service';
+import { CreatePromotionalDiscountInput } from '../dtos/request/create-promotional-discount.input';
+import { PromotionalDiscount } from '../models/promotional-discount.model';
+import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
+import { JwtPayload } from 'src/auth/types/jwt-payload.type';
+import { PromotionalDiscount as PromotionalDiscountEntity } from 'generated/prisma';
+import { GqlAuthGuard } from 'src/auth/guards/gql-auth.guard';
+
+@Resolver(() => PromotionalDiscount)
+@UseGuards(GqlAuthGuard)
+export class PromotionalDiscountsResolver {
+  constructor(private promotionalDiscountService: PromotionalDiscountService) {}
+
+  @Mutation(() => PromotionalDiscount)
+  createPromotionalDiscount(
+    @Args('input') input: CreatePromotionalDiscountInput,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<PromotionalDiscountEntity> {
+    console.log(user);
+    return this.promotionalDiscountService.createPromotion(
+      input,
+      user.userType,
+    );
+  }
+
+  @Query(() => [PromotionalDiscount])
+  getPromotionsByProduct(
+    @Args('productVariationId') productVariationId: string,
+  ): Promise<PromotionalDiscountEntity[]> {
+    return this.promotionalDiscountService.findPromotionsByProduct(
+      productVariationId,
+    );
+  }
+
+  @Mutation(() => Boolean)
+  deletePromotionalDiscount(
+    @Args('id') id: string,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<boolean> {
+    return this.promotionalDiscountService.deletePromotion(id, user.userType);
+  }
+}

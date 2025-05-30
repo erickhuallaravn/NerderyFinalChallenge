@@ -17,14 +17,19 @@ import { OptionValueService } from './services/option/option-value.service';
   providers: [
     ProductService,
     ProductResolver,
+
     ProductVariationService,
     ProductVariationResolver,
+
     ProductFileService,
     ProductFileResolver,
+
     FeatureResolver,
     FeatureService,
+
     OptionService,
     OptionValueService,
   ],
+  exports: [CloudinaryModule],
 })
 export class ProductModule {}

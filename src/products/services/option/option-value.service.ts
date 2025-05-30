@@ -17,7 +17,12 @@ export class OptionValueService {
     const option = await this.optionService.findOrCreateOption(optionCode);
 
     let value = await this.prisma.optionValue.findUnique({
-      where: { code: valueCode },
+      where: {
+        optionId_code: {
+          optionId: option.id,
+          code: valueCode,
+        },
+      },
     });
 
     if (!value) {

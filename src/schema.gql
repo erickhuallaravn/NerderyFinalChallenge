@@ -2,6 +2,11 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+input AddToShopCartInput {
+  productVariationId: String!
+  quantity: Int!
+}
+
 input AddVariationFeatureInput {
   optionCode: String!
   productVariationId: String!
@@ -22,6 +27,17 @@ input CreateProductVariationInput {
   productId: ID!
 }
 
+input CreatePromotionalDiscountInput {
+  availableStock: Float
+  bonusQuantity: Float
+  discountPercentage: Float
+  discountType: String!
+  name: String!
+  productVariationId: String!
+  requiredAmount: Float!
+  validUntil: DateTime
+}
+
 """
 A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
 """
@@ -37,12 +53,16 @@ type Feature {
 
 type Mutation {
   addFeature(input: AddVariationFeatureInput!): Feature!
+  addOrUpdateCartItem(input: AddToShopCartInput!): Boolean!
   createProduct(input: CreateProductInput!): Product!
   createProductVariation(input: CreateProductVariationInput!): ProductVariation!
+  createPromotionalDiscount(input: CreatePromotionalDiscountInput!): PromotionalDiscount!
   deleteFeature(featureId: ID!): Boolean!
   deleteProduct(product_id: ID!): Boolean!
   deleteProductFile(productFileId: String!): Boolean!
   deleteProductVariation(productVariationId: ID!): Boolean!
+  deletePromotionalDiscount(id: String!): Boolean!
+  emptyCart: Boolean!
   updateProduct(input: UpdateProductInput!): Product!
   updateProductVariation(input: UpdateProductVariationInput!): ProductVariation!
   uploadProductFile(input: UploadProductFileInput!): ProductFile!
@@ -107,9 +127,48 @@ type ProductVariation {
   updatedAt: DateTime
 }
 
+type PromotionalDiscount {
+  availableStock: Float
+  bonusQuantity: Float
+  createdAt: DateTime!
+  discountPercentage: Float
+  discountType: String!
+  id: ID!
+  name: String!
+  productVariationId: String!
+  requiredAmount: Float!
+  status: String!
+  statusUpdatedAt: DateTime!
+  updatedAt: DateTime
+  validSince: DateTime
+  validUntil: DateTime
+}
+
 type Query {
+  getCartItems: [ShopCartItem!]!
   getProductById(product_id: ID!): Product!
   getProducts: [Product!]!
+  getPromotionsByProduct(productVariationId: String!): [PromotionalDiscount!]!
+}
+
+type ShopCartItem {
+  createdAt: DateTime!
+  id: ID!
+  productName: String!
+  productVariationId: String!
+  quantity: Int!
+  shopCartItemDiscounts: [ShopCartItemDiscount!]!
+  subtotal: Float!
+  updatedAt: DateTime
+}
+
+type ShopCartItemDiscount {
+  bonusQuantity: Float
+  createdAt: DateTime!
+  discountPercentage: Float
+  id: ID!
+  requiredAmount: Int!
+  updatedAt: DateTime
 }
 
 input UpdateProductInput {

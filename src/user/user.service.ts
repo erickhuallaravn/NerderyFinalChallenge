@@ -5,10 +5,13 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { user as User } from 'generated/prisma';
+import { User } from 'generated/prisma';
 import * as bcrypt from 'bcrypt';
 import { LogInInput } from '../auth/dtos/requests/login/login.input';
 import { SignUpInput } from '../auth/dtos/requests/signup/signup.input';
+import { JwtPayload } from 'src/auth/types/jwt-payload.type';
+
+const PASSWORD_ENCRYPT_ROUNDS: number = 10;
 
 @Injectable()
 export class UserService {
@@ -18,15 +21,27 @@ export class UserService {
     const { email, password } = userCredentials;
     const existingUser = await this.prisma.user.findUnique({
       where: { email: email },
+      include: {
+        userRoles: {
+          select: {
+            role: {
+              select: {
+                name: true,
+                permissions: true,
+              },
+            },
+          },
+        },
+      },
     });
 
-    if (!existingUser || !existingUser.password_hash) {
+    if (!existingUser || !existingUser.passwordHash) {
       throw new NotFoundException('El usuario no se encuentra registrado.');
     }
 
     const isPasswordValid = await bcrypt.compare(
       password,
-      existingUser.password_hash,
+      existingUser.passwordHash,
     );
 
     if (!isPasswordValid) {
@@ -34,7 +49,6 @@ export class UserService {
         'Las credenciales proporcionadas son incorrectas.',
       );
     }
-
     return existingUser;
   }
 
@@ -49,14 +63,17 @@ export class UserService {
       throw new ConflictException('El email ya está registrado');
     }
 
-    const passwordHash = await bcrypt.hash(newUserInfo.password, 10);
+    const passwordHash = await bcrypt.hash(
+      newUserInfo.password,
+      PASSWORD_ENCRYPT_ROUNDS,
+    );
     const newUser = await this.prisma.user.create({
       data: {
         email: newUserInfo.email,
-        password_hash: passwordHash,
-        user_type: 'CUSTOMER',
+        passwordHash: passwordHash,
+        userType: 'CUSTOMER',
         status: 'ACTIVE',
-        status_updated_at: new Date(),
+        statusUpdatedAt: new Date(),
       },
     });
 
@@ -70,14 +87,26 @@ export class UserService {
       );
     }
 
-    await this.prisma.user_roles.create({
+    await this.prisma.userRoles.create({
       data: {
-        user_id: newUser.user_id,
-        role_id: customerRole.role_id,
-        valid_until: null,
+        userId: newUser.id,
+        roleId: customerRole.id,
+        validUntil: null,
       },
     });
 
     return newUser;
+  }
+
+  async updatePassword(
+    newPassword: string,
+    payload: JwtPayload,
+  ): Promise<boolean> {
+    const hashed = await bcrypt.hash(newPassword, PASSWORD_ENCRYPT_ROUNDS);
+    await this.prisma.user.update({
+      where: { id: payload.sub },
+      data: { passwordHash: hashed },
+    });
+    return true;
   }
 }

@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   UnauthorizedException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { UserService } from 'src/user/user.service';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -10,8 +11,9 @@ import { JwtService } from '@nestjs/jwt';
 import { LogInInput } from '../dtos/requests/login/login.input';
 import { SignUpInput } from '../dtos/requests/signup/signup.input';
 import { MailerService } from '@nestjs-modules/mailer';
-import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
+import { JwtPayload } from '../types/jwt-payload.type';
+import { User } from 'generated/prisma';
 
 @Injectable()
 export class AuthService {
@@ -25,45 +27,70 @@ export class AuthService {
 
   async login(authCredentials: LogInInput): Promise<string> {
     const { email, password } = authCredentials;
-    const user = await this.userService.findByCredentials({
+    const user: User = await this.userService.findByCredentials({
       email,
       password,
     });
-    let token_version: string | null = user.token_version;
-    if (user.token_version === null) {
-      token_version = uuidv4();
+    let tokenVersion: string | null = user.tokenVersion;
+    if (user.tokenVersion === null) {
+      tokenVersion = uuidv4();
       await this.prisma.user.update({
-        where: { user_id: user.user_id },
+        where: { id: user.id },
         data: {
-          token_version: { set: token_version },
+          tokenVersion: { set: tokenVersion },
         },
       });
     }
-    const { user_id } = user;
-    const payload = {
-      sub: user_id,
-      token_version: token_version,
+    const userId = user.id;
+    const customer = await this.prisma.customer.findUnique({
+      where: { userId },
+    });
+    const payload: JwtPayload = {
+      sub: user.id,
+      customerId: customer!.id,
+      userType: 'CUSTOMER',
+      tokenVersion: tokenVersion!,
     };
     return this.jwtService.signAsync(payload);
   }
 
   async registerCustomer(customerInfo: SignUpInput): Promise<string> {
-    const { customer, token_version } =
+    const { customer, tokenVersion } =
       await this.customerService.create(customerInfo);
-    const { user_id } = customer;
-    const payload = {
-      sub: user_id,
-      token_version: token_version,
+    const user = await this.prisma.user.findUnique({
+      where: { id: customer.userId },
+      include: {
+        userRoles: {
+          select: {
+            role: {
+              select: {
+                name: true,
+                permissions: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    if (!user) {
+      throw new InternalServerErrorException(
+        'The server could not create the user, try again',
+      );
+    }
+    const payload: JwtPayload = {
+      sub: customer.userId,
+      customerId: customer.id,
+      userType: 'CUSTOMER',
+      tokenVersion: tokenVersion,
     };
-
     return this.jwtService.signAsync(payload);
   }
 
   async logout(userId: string): Promise<void> {
     await this.prisma.user.update({
-      where: { user_id: userId },
+      where: { id: userId },
       data: {
-        token_version: { set: null },
+        tokenVersion: { set: null },
       },
     });
   }
@@ -74,7 +101,7 @@ export class AuthService {
       throw new NotFoundException('El usuario no se encuentra registrado.');
 
     const token = await this.jwtService.signAsync(
-      { sub: user.user_id },
+      { sub: user.id },
       { expiresIn: '15m' },
     );
     await this.mailerService.sendMail({
@@ -84,18 +111,13 @@ export class AuthService {
     });
   }
 
-  async updatePassword(token: string, newPassword: string) {
-    let payload: any;
+  async updatePassword(token: string, newPassword: string): Promise<boolean> {
+    let payload: JwtPayload;
     try {
       payload = await this.jwtService.verifyAsync(token);
     } catch {
       throw new UnauthorizedException('Token inválido o expirado');
     }
-
-    const hashed = await bcrypt.hash(newPassword, 10);
-    await this.prisma.user.update({
-      where: { user_id: payload.sub },
-      data: { password_hash: hashed },
-    });
+    return await this.userService.updatePassword(newPassword, payload);
   }
 }
