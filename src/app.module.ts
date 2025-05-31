@@ -12,7 +12,7 @@ import { CustomerModule } from './customer/customer.module';
 import { ShopCartsModule } from './shop-carts/shop-carts.module';
 import { PromotionalDiscountsModule } from './discounts/promotional-discounts.module';
 import { OrderModule } from './orders/orders.module';
-import { PaymentController } from './payments/controllers/payments.controller';
+import { StripeModule } from './stripe/stripe.module';
 
 void ConfigModule.forRoot({
   isGlobal: true,
@@ -35,6 +35,7 @@ void ConfigModule.forRoot({
     ShopCartsModule,
     PromotionalDiscountsModule,
     OrderModule,
+    StripeModule,
   ],
   controllers: [],
   providers: [],
