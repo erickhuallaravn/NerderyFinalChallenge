@@ -11,6 +11,8 @@ import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { CustomerModule } from './customer/customer.module';
 import { ShopCartsModule } from './shop-carts/shop-carts.module';
 import { PromotionalDiscountsModule } from './discounts/promotional-discounts.module';
+import { OrderModule } from './orders/orders.module';
+import { PaymentController } from './payments/controllers/payments.controller';
 
 void ConfigModule.forRoot({
   isGlobal: true,
@@ -32,6 +34,7 @@ void ConfigModule.forRoot({
     CloudinaryModule,
     ShopCartsModule,
     PromotionalDiscountsModule,
+    OrderModule,
   ],
   controllers: [],
   providers: [],

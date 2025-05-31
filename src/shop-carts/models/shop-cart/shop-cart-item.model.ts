@@ -7,6 +7,9 @@ export class ShopCartItem {
   id: string;
 
   @Field(() => String)
+  shoppingCartHeaderId: string;
+
+  @Field(() => String)
   productVariationId: string;
 
   @Field(() => String)
@@ -25,5 +28,5 @@ export class ShopCartItem {
   updatedAt?: Date;
 
   @Field(() => [ShopCartItemDiscount])
-  shopCartItemDiscounts: ShopCartItemDiscount[];
+  itemDiscounts: ShopCartItemDiscount[];
 }

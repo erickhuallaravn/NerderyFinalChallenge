@@ -28,7 +28,9 @@ export class ShopCartService {
 
     return this.prisma.shopCartItem.findMany({
       where: { shoppingCartHeaderId: header.id },
-      include: { shopCartItemDiscounts: true },
+      include: {
+        itemDiscounts: true,
+      },
     });
   }
 

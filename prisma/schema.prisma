@@ -203,7 +203,7 @@ model CustomerLikedProducts {
   @@schema("identity")
 }
 
-model OrderDetailDiscount {
+model OrderItemDiscount {
   id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   orderDetailId         String   @map("order_detail_id") @db.Uuid
   promotionalDiscountId String   @map("promotional_discount_id") @db.Uuid
@@ -223,19 +223,17 @@ model OrderDetailDiscount {
   @@schema("logs")
 }
 
-model OrderHeaderStatus {
+model OrderHeaderStatusHistory {
   id            String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   orderHeaderId String  @map("order_header_id") @db.Uuid
-  orderStatusId String  @map("order_status_id") @db.Uuid
   notes         String? @db.VarChar
 
   orderHeader OrderHeader @relation(fields: [orderHeaderId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  orderStatus OrderStatus @relation(fields: [orderStatusId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt       DateTime? @map("updated_at") @db.Timestamp(6)
-  status          RowStatus
-  statusUpdatedAt DateTime  @map("status_updated_at") @db.Timestamp(6)
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt       DateTime?         @map("updated_at") @db.Timestamp(6)
+  status          OrderHeaderStatus
+  statusUpdatedAt DateTime          @map("status_updated_at") @db.Timestamp(6)
 
   @@map("order_header_status")
   @@schema("logs")
@@ -257,7 +255,7 @@ model OrderItem {
   status          RowStatus
   statusUpdatedAt DateTime  @map("status_updated_at") @db.Timestamp(6)
 
-  orderDetailDiscount OrderDetailDiscount[]
+  itemDiscounts OrderItemDiscount[]
 
   @@map("order_item")
   @@schema("sales")
@@ -273,9 +271,9 @@ model OrderHeader {
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt DateTime? @map("updated_at") @db.Timestamp(6)
 
-  orderHeaderStatus OrderHeaderStatus[]
-  orderPayment      OrderPayment[]
-  orderItems        OrderItem[]
+  orderPayment  OrderPayment[]
+  orderItems    OrderItem[]
+  statusHistory OrderHeaderStatusHistory[]
 
   @@map("order_header")
   @@schema("sales")
@@ -300,22 +298,6 @@ model OrderPayment {
   @@schema("sales")
 }
 
-model OrderStatus {
-  id          String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name        String @db.VarChar
-  description String @db.VarChar
-
-  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt       DateTime? @map("updated_at") @db.Timestamp(6)
-  status          RowStatus
-  statusUpdatedAt DateTime  @map("status_updated_at") @db.Timestamp(6)
-
-  orderHeaderStatus OrderHeaderStatus[]
-
-  @@map("order_status")
-  @@schema("sales")
-}
-
 model PromotionalDiscount {
   id                 String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name               String       @db.VarChar
@@ -335,7 +317,7 @@ model PromotionalDiscount {
   status          PromotionStatus
   statusUpdatedAt DateTime        @map("status_updated_at") @db.Timestamp(6)
 
-  orderDetailDiscounts OrderDetailDiscount[]
+  itemDiscounts        OrderItemDiscount[]
   shopCartItemDiscount ShopCartItemDiscount[]
 
   @@map("promotional_discount")
@@ -355,7 +337,7 @@ model ShopCartItem {
   productVariation   ProductVariation @relation(fields: [productVariationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   shoppingCartHeader ShopCartHeader   @relation(fields: [shoppingCartHeaderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  shopCartItemDiscounts ShopCartItemDiscount[]
+  itemDiscounts ShopCartItemDiscount[]
 
   @@map("shop_cart_item")
   @@schema("sales")
@@ -470,5 +452,17 @@ enum PromotionStatus {
   DELETED
 
   @@map("promotion_status")
+  @@schema("sales")
+}
+
+enum OrderHeaderStatus {
+  CREATED
+  PENDING_PAYMENT
+  PAID
+  IN_SHIPPING
+  SHIPPED
+  ANULATED
+
+  @@map("order_header_status")
   @@schema("sales")
 }

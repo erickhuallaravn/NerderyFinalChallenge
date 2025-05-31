@@ -13,6 +13,14 @@ input AddVariationFeatureInput {
   valueCode: String!
 }
 
+input CreateOrderItemDiscountInput {
+  bonusQuantity: Float
+  discountPercentage: Float
+  orderDetailId: String!
+  promotionalDiscountId: String!
+  requiredAmount: Float!
+}
+
 input CreateProductInput {
   description: String
   name: String!
@@ -38,6 +46,15 @@ input CreatePromotionalDiscountInput {
   validUntil: DateTime
 }
 
+type Customer {
+  address: String!
+  birthday: DateTime!
+  firstName: String!
+  id: ID!
+  lastName: String!
+  phoneNumber: String!
+}
+
 """
 A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
 """
@@ -54,15 +71,20 @@ type Feature {
 type Mutation {
   addFeature(input: AddVariationFeatureInput!): Feature!
   addOrUpdateCartItem(input: AddToShopCartInput!): Boolean!
+  anulateOrder(orderId: String!): OrderHeader!
+  createOrder(notes: String): OrderHeader!
   createProduct(input: CreateProductInput!): Product!
   createProductVariation(input: CreateProductVariationInput!): ProductVariation!
   createPromotionalDiscount(input: CreatePromotionalDiscountInput!): PromotionalDiscount!
   deleteFeature(featureId: ID!): Boolean!
+  deleteOrderItem(itemId: String!): OrderItem!
   deleteProduct(product_id: ID!): Boolean!
   deleteProductFile(productFileId: String!): Boolean!
   deleteProductVariation(productVariationId: ID!): Boolean!
   deletePromotionalDiscount(id: String!): Boolean!
   emptyCart: Boolean!
+  updateOrder(input: UpdateOrderHeaderInput!, orderId: String!): OrderHeader!
+  updateOrderItem(input: UpdateOrderItemInput!, itemId: String!): OrderItem!
   updateProduct(input: UpdateProductInput!): Product!
   updateProductVariation(input: UpdateProductVariationInput!): ProductVariation!
   uploadProductFile(input: UploadProductFileInput!): ProductFile!
@@ -88,6 +110,45 @@ type OptionValue {
   statusUpdatedAt: DateTime!
   updatedAt: DateTime!
   variations: Feature!
+}
+
+type OrderHeader {
+  createdAt: DateTime!
+  customer: Customer!
+  id: ID!
+  orderItems: [OrderItem!]!
+  statusHistory: [OrderHeaderStatusHistory!]!
+  subtotal: Float!
+  updatedAt: DateTime
+}
+
+type OrderHeaderStatusHistory {
+  id: ID!
+  notes: String
+  status: String!
+  statusUpdatedAt: DateTime!
+}
+
+type OrderItem {
+  createdAt: DateTime!
+  customer: Customer!
+  id: ID!
+  itemDiscounts: [OrderItemDiscount!]!
+  productName: String!
+  quantity: Int!
+  subtotal: Float!
+  updatedAt: DateTime
+}
+
+type OrderItemDiscount {
+  bonusQuantity: Int!
+  customer: Customer!
+  discountPercentage: Float!
+  id: ID!
+  orderDetailId: String!
+  productName: String!
+  promotionalDiscountId: String!
+  requiredAmount: Int!
 }
 
 type Product {
@@ -146,6 +207,9 @@ type PromotionalDiscount {
 
 type Query {
   getCartItems: [ShopCartItem!]!
+  getItemsByOrder(itemId: String!): OrderItem!
+  getOrderItem(itemId: String!): OrderItem!
+  getOrders: [OrderHeader!]!
   getProductById(product_id: ID!): Product!
   getProducts: [Product!]!
   getPromotionsByProduct(productVariationId: String!): [PromotionalDiscount!]!
@@ -154,10 +218,11 @@ type Query {
 type ShopCartItem {
   createdAt: DateTime!
   id: ID!
+  itemDiscounts: [ShopCartItemDiscount!]!
   productName: String!
   productVariationId: String!
   quantity: Int!
-  shopCartItemDiscounts: [ShopCartItemDiscount!]!
+  shoppingCartHeaderId: String!
   subtotal: Float!
   updatedAt: DateTime
 }
@@ -169,6 +234,23 @@ type ShopCartItemDiscount {
   id: ID!
   requiredAmount: Int!
   updatedAt: DateTime
+}
+
+input UpdateOrderHeaderInput {
+  customerId: String
+  notes: String
+  status: String!
+  subtotal: Float
+}
+
+input UpdateOrderItemInput {
+  id: String!
+  itemDiscounts: [CreateOrderItemDiscountInput!]
+  orderHeaderId: String
+  productName: String
+  productVariationId: String
+  quantity: Float
+  subtotal: Float
 }
 
 input UpdateProductInput {

@@ -24,3 +24,11 @@ export type DiscountType = 'PERCENTAGE' | 'BONUS';
 export type PaymentStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED';
 
 export type PromotionStatus = 'ACTIVE' | 'OUT_OF_STOCK' | 'EXPIRED' | 'DELETED';
+
+export type OrderHeaderStatus =
+  | 'CREATED'
+  | 'PENDING_PAYMENT'
+  | 'PAID'
+  | 'IN_SHIPPING'
+  | 'SHIPPED'
+  | 'ANULATED';
