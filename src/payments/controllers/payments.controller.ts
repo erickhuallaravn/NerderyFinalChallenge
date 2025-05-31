@@ -1,6 +1,7 @@
 import {
   Controller,
   Post,
+  Request,
   Get,
   Query,
   Headers,
@@ -12,8 +13,6 @@ import {
 } from '@nestjs/common';
 import { StripeService } from '../../stripe/services/stripe.service';
 import Stripe from 'stripe';
-import { Request } from 'express';
-import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { JwtPayload } from 'src/auth/types/jwt-payload.type';
 import { JwtStrategy } from 'src/auth/jwt/jwt.strategy';
 
@@ -25,9 +24,9 @@ export class PaymentController {
   @UseGuards(JwtStrategy)
   @Post('checkout')
   async createCheckoutSession(
-    @CurrentUser() user: JwtPayload,
+    @Request() req: JwtPayload,
   ): Promise<{ url: string }> {
-    const url: string = await this.stripeService.createCheckoutSession(user);
+    const url: string = await this.stripeService.createCheckoutSession(req);
     return { url };
   }
 
