@@ -8,9 +8,9 @@ export class OptionService {
 
   async findOrCreateOption(code: string): Promise<Option> {
     let option = await this.prisma.option.findUnique({
-      where: { 
-        code 
-      }
+      where: {
+        code,
+      },
     });
 
     if (!option) {

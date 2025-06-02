@@ -4,14 +4,18 @@ import { CreateProductInput } from '../../dtos/requests/product/create-product.i
 import { UpdateProductInput } from '../../dtos/requests/product/update-product.input';
 import { Product as ProductEntity } from 'generated/prisma';
 import { Product } from '../../models/product/product.model';
+import { SearchPaginateProductInput } from 'src/products/dtos/requests/product/search-paginate-product.input';
 
 @Resolver(() => Product)
 export class ProductResolver {
   constructor(private readonly productService: ProductService) {}
 
   @Query(() => [Product])
-  async getProducts(): Promise<ProductEntity[]> {
-    return this.productService.findAll();
+  async getProducts(
+    @Args('input', { type: () => SearchPaginateProductInput, nullable: true })
+    input?: SearchPaginateProductInput,
+  ): Promise<ProductEntity[]> {
+    return this.productService.findAll(input);
   }
 
   @Query(() => Product)

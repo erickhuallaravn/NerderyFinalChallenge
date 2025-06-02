@@ -211,8 +211,14 @@ type Query {
   getOrderItem(itemId: String!): OrderItem!
   getOrders: [OrderHeader!]!
   getProductById(product_id: ID!): Product!
-  getProducts: [Product!]!
+  getProducts(input: SearchPaginateProductInput): [Product!]!
   getPromotionsByProduct(productVariationId: String!): [PromotionalDiscount!]!
+}
+
+input SearchPaginateProductInput {
+  limit: Int
+  offset: Int
+  search: String
 }
 
 type ShopCartItem {

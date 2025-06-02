@@ -33,13 +33,13 @@ export class PaymentController {
   @Get('success')
   async paymentSuccess(@Query('session_id') sessionId: string) {
     if (!sessionId) {
-      throw new NotFoundException('session_id requerido');
+      throw new NotFoundException('session_id required');
     }
 
     const session: Stripe.Checkout.Session =
       await this.stripeService.retrieveSession(sessionId);
     return {
-      message: 'Pago exitoso',
+      message: 'Succesful payment',
       sessionId,
       email: session.customer_email,
       orderId: session.metadata?.orderId,
@@ -48,7 +48,7 @@ export class PaymentController {
 
   @Get('cancel')
   paymentCancelled() {
-    return { message: 'El pago fue cancelado por el usuario' };
+    return { message: 'The payment was cancelled by user' };
   }
 
   @Post('webhook')
@@ -59,7 +59,7 @@ export class PaymentController {
     const rawBody = req.rawBody;
     if (!rawBody) {
       throw new BadRequestException(
-        'No se recibió el cuerpo de la solicitud como rawBody',
+        'The request body was not received',
       );
     }
 
@@ -68,10 +68,10 @@ export class PaymentController {
     switch (event.type) {
       case 'checkout.session.completed':
         const session = event.data.object;
-        console.log(`Pago confirmado para orden: ${session.metadata?.orderId}`);
+        console.log(`Checkout confirmed for: ${session.metadata?.orderId}`);
         break;
       default:
-        console.log(`ℹEvento ignorado: ${event.type}`);
+        console.log(`Ignored event: ${event.type}`);
     }
 
     return { received: true };

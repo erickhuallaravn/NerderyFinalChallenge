@@ -9,8 +9,10 @@ import {
 import { AuthService } from '../services/auth.service';
 import { LogInInput } from '../dtos/requests/login/login.input';
 import { SignUpInput } from '../dtos/requests/signup/signup.input';
-import { GqlAuthGuard } from 'src/auth/guards/gql-auth.guard';
 import { AuthTokenResponseOutput } from '../dtos/responses/auth-token-response.output';
+import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
+import { JwtPayload } from 'src/auth/types/jwt-payload.type';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -30,24 +32,24 @@ export class AuthController {
     return { accessToken: token };
   }
 
-  @UseGuards(GqlAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Post('sign-out')
-  async signOut(@Request() req): Promise<{ message: string }> {
-    await this.authService.logout(req.user.sub);
-    return { message: 'Sesión cerrada exitosamente' };
+  async signOut(@CurrentUser() req: JwtPayload): Promise<{ message: string }> {
+    await this.authService.logout(req.sub);
+    return { message: 'Logged out succesfully' };
   }
 
-  @UseGuards(GqlAuthGuard)
   @Post('send-recover-email')
   async sendRecoverEmail(@Body('email') email: string) {
     await this.authService.sendRecoverEmail(email);
-    return { message: 'Correo enviado si el usuario existe' };
+    return {
+      message: 'Email sent to user only if his registered email exists',
+    };
   }
 
-  @UseGuards(GqlAuthGuard)
   @Patch('update-password')
   async updatePassword(@Body() data: { token: string; new_password: string }) {
     await this.authService.updatePassword(data.token, data.new_password);
-    return { message: 'Contraseña actualizada' };
+    return { message: 'Password updated successfully' };
   }
 }

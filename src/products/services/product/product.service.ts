@@ -3,25 +3,56 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateProductInput } from '../../dtos/requests/product/create-product.input';
 import { UpdateProductInput } from '../../dtos/requests/product/update-product.input';
 import { Product } from 'generated/prisma';
+import { SearchPaginateProductInput } from 'src/products/dtos/requests/product/search-paginate-product.input';
 
 @Injectable()
 export class ProductService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(): Promise<Product[]> {
-    return await this.prisma.product.findMany({
-      where: { status: 'AVAILABLE' },
+  async findAll(input?: SearchPaginateProductInput): Promise<Product[]> {
+    const { search, limit, offset } = input || {};
+
+    return this.prisma.product.findMany({
+      where: {
+        status: 'AVAILABLE',
+        OR: search
+          ? [
+              { name: { contains: search, mode: 'insensitive' } },
+              { description: { contains: search, mode: 'insensitive' } },
+              {
+                variations: {
+                  some: {
+                    features: {
+                      some: {
+                        OR: [
+                          {
+                            optionValue: {
+                              name: { contains: search, mode: 'insensitive' },
+                            },
+                          },
+                          {
+                            optionValue: {
+                              option: {
+                                name: { contains: search, mode: 'insensitive' },
+                              },
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  },
+                },
+              },
+            ]
+          : undefined,
+      },
       include: {
         variations: {
-          where: {
-            status: 'AVAILABLE',
-          },
+          where: { status: 'AVAILABLE' },
           include: {
             productFiles: true,
             features: {
-              where: {
-                status: 'ACTIVE',
-              },
+              where: { status: 'ACTIVE' },
               include: {
                 optionValue: {
                   include: {
@@ -33,6 +64,8 @@ export class ProductService {
           },
         },
       },
+      take: limit,
+      skip: offset,
     });
   }
 
