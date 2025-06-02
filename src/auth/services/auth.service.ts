@@ -106,7 +106,9 @@ export class AuthService {
     );
     await this.mailerService.sendMail({
       to: user.email,
-      subject: 'Recuperación de contraseña',
+      subject: 'Welcome!',
+      template: '../../templates/welcome',
+      context: { token: token },
       text: `Tu token de recuperación: ${token}`,
     });
   }
