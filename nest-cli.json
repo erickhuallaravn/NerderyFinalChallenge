@@ -6,8 +6,8 @@
     "deleteOutDir": true,
     "assets": [
       {
-        "include": "src/**/*.hbs",
-        "outDir": "dist"
+        "include": "**/*.hbs",
+        "outDir": "./dist"
       }
     ]
   }
