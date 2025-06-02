@@ -1,5 +1,5 @@
 import { ObjectType, Field, ID } from '@nestjs/graphql';
-import { Customer } from '../../customer/customer.model';
+import { Customer } from '../../customer/models/customer.model';
 import { OrderItem } from './order-item.model';
 import { OrderHeaderStatusHistory } from './order-header-status-history.model';
 

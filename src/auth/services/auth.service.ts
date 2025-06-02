@@ -4,9 +4,9 @@ import {
   UnauthorizedException,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { UserService } from 'src/user/user.service';
+import { UserService } from 'src/user/services/user.service';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CustomerService } from 'src/customer/customer.service';
+import { CustomerService } from 'src/customer/services/customer.service';
 import { JwtService } from '@nestjs/jwt';
 import { LogInInput } from '../dtos/requests/login/login.input';
 import { SignUpInput } from '../dtos/requests/signup/signup.input';

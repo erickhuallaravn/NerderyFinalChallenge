@@ -7,8 +7,8 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { User } from 'generated/prisma';
 import * as bcrypt from 'bcrypt';
-import { LogInInput } from '../auth/dtos/requests/login/login.input';
-import { SignUpInput } from '../auth/dtos/requests/signup/signup.input';
+import { LogInInput } from '../../auth/dtos/requests/login/login.input';
+import { SignUpInput } from '../../auth/dtos/requests/signup/signup.input';
 import { JwtPayload } from 'src/auth/types/jwt-payload.type';
 
 const PASSWORD_ENCRYPT_ROUNDS: number = 10;

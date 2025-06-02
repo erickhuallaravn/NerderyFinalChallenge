@@ -1,5 +1,5 @@
 import { Field, ObjectType, ID, Int } from '@nestjs/graphql';
-import { Customer } from '../../customer/customer.model';
+import { Customer } from '../../customer/models/customer.model';
 
 @ObjectType()
 export class OrderItemDiscount {
