@@ -68,6 +68,7 @@ CLOUDINARY_API_SECRET=your_api_secret
 # Stripe
 STRIPE_SECRET_KEY=your_stripe_secret_key
 STRIPE_WEBHOOK_SECRET=your_webhook_secret
+BASE_URL=ngrook_generated_url
 ```
 
 ---
