@@ -29,7 +29,7 @@ This project is a fully functional API built with [NestJS](https://nestjs.com), 
 ### 1. Clone the repo
 
 ```bash
-$ git clone https://github.com/erickhuallaravn/NerderyFinalChallenge.git>
+$ git clone https://github.com/erickhuallaravn/NerderyFinalChallenge.git
 $ cd NerderyFinalChallenge
 ```
 

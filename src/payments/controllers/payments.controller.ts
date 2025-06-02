@@ -1,7 +1,6 @@
 import {
   Controller,
   Post,
-  Request,
   Get,
   Query,
   Headers,
@@ -11,20 +10,21 @@ import {
   RawBodyRequest,
   BadRequestException,
 } from '@nestjs/common';
+import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { StripeService } from '../../stripe/services/stripe.service';
 import Stripe from 'stripe';
 import { JwtPayload } from 'src/auth/types/jwt-payload.type';
-import { JwtStrategy } from 'src/auth/jwt/jwt.strategy';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 @Controller('payment')
 export class PaymentController {
   constructor(private readonly stripeService: StripeService) {}
 
   // Protegido con JWT
-  @UseGuards(JwtStrategy)
+  @UseGuards(JwtAuthGuard)
   @Post('checkout')
   async createCheckoutSession(
-    @Request() req: JwtPayload,
+    @CurrentUser() req: JwtPayload,
   ): Promise<{ url: string }> {
     const url: string = await this.stripeService.createCheckoutSession(req);
     return { url };

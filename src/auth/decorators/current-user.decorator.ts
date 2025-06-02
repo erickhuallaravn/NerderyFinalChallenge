@@ -5,6 +5,10 @@ import { GqlContext } from 'src/common/types/graphql-context.type';
 
 export const CurrentUser = createParamDecorator(
   (data: unknown, context: ExecutionContext): JwtPayload => {
+    if (context.getType() === 'http') {
+      const request = context.switchToHttp().getRequest();
+      return request.user;
+    }
     const ctx = GqlExecutionContext.create(context);
     const gqlCtx = ctx.getContext<GqlContext>();
     return gqlCtx.req.user;
