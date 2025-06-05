@@ -141,12 +141,12 @@ model Feature {
 }
 
 model ProductVariation {
-  id             String  @id @default(dbgenerated("gen_random_uuid()")) @map("product_variation_id") @db.Uuid
-  productId      String  @map("product_id") @db.Uuid
-  name           String  @db.VarChar
-  price          Decimal @db.Decimal
-  currencyCode   String  @map("currency_code") @db.VarChar
-  availableStock Int     @map("available_stock")
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @map("product_variation_id") @db.Uuid
+  productId      String       @map("product_id") @db.Uuid
+  name           String       @db.VarChar
+  price          Decimal      @db.Decimal
+  currencyCode   CurrencyCode @map("currency_code")
+  availableStock Int          @map("available_stock")
 
   product Product @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -280,12 +280,12 @@ model OrderHeader {
 }
 
 model OrderPayment {
-  id              String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  orderHeaderId   String  @map("order_header_id") @db.Uuid
-  stripePaymentId String  @map("stripe_payment_id") @db.VarChar
-  amount          Decimal @db.Decimal
-  currencyCode    String  @map("currency_code") @db.VarChar
-  statusMessage   String  @map("status_message") @db.VarChar
+  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderHeaderId   String       @map("order_header_id") @db.Uuid
+  stripePaymentId String       @map("stripe_payment_id") @db.VarChar
+  amount          Decimal      @db.Decimal
+  currencyCode    CurrencyCode @map("currency_code")
+  statusMessage   String       @map("status_message") @db.VarChar
 
   orderHeader OrderHeader @relation(fields: [orderHeaderId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -465,4 +465,12 @@ enum OrderHeaderStatus {
 
   @@map("order_header_status")
   @@schema("sales")
+}
+
+enum CurrencyCode {
+  PEN
+  USD
+
+  @@map("currency_code")
+  @@schema("common")
 }

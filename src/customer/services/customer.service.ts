@@ -24,10 +24,10 @@ export class CustomerService {
     const customer = await this.prisma.customer.create({
       data: {
         userId: user!.id,
-        firstName: newCustomerInfo.first_name,
-        lastName: newCustomerInfo.last_name,
+        firstName: newCustomerInfo.firstName,
+        lastName: newCustomerInfo.lastName,
         address: newCustomerInfo.address,
-        phoneNumber: newCustomerInfo.phone_number,
+        phoneNumber: newCustomerInfo.phoneNumber,
         birthday: newCustomerInfo.birthday
           ? new Date(newCustomerInfo.birthday)
           : null,
