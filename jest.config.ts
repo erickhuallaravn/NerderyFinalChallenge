@@ -1,13 +1,7 @@
-import { config } from 'dotenv';
-import { resolve } from 'path';
-
-config({
-  path: resolve(__dirname, '.env'),
-});
-
 export default {
   preset: 'ts-jest',
   testEnvironment: 'node',
+  setupFiles: ['<rootDir>/jest.setup.ts'],
   moduleNameMapper: {
     '^src/(.*)$': '<rootDir>/src/$1',
     '^generated/prisma$': '<rootDir>/generated/prisma',
@@ -16,13 +10,9 @@ export default {
   rootDir: '.',
   testRegex: '.*\\.spec\\.ts$',
   collectCoverageFrom: [
-    '!src/**/*.input.ts',
-    '!src/**/*.output.ts',
-    '!src/**/*.entity.ts',
-    '!src/main.ts',
-    '!src/**/*.module.ts',
-    '!src/**/*.resolver.ts',
-    '!src/**/*.controller.ts',
+    'src/**/customer.service.ts',
+    'src/**/auth.service.ts',
+    'src/**/promotional-discount.service.ts',
   ],
   transform: {
     '^.+\\.ts$': 'ts-jest',

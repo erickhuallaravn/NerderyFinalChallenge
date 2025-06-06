@@ -9,6 +9,7 @@ import { NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { RolePermission } from 'generated/prisma';
 import * as bcrypt from 'bcrypt';
 import { PASSWORD_ENCRYPT_ROUNDS } from 'src/common/constants/app.constants';
+import { LogInInput } from '../dtos/requests/login/login.input';
 
 describe('AuthService (DB-based)', () => {
   let service: AuthService;
@@ -37,8 +38,11 @@ describe('AuthService (DB-based)', () => {
 
   describe('login()', () => {
     it('should login a user and set tokenVersion if null', async () => {
-      const rawPassword = 'secret123';
-      const hashed = await bcrypt.hash(rawPassword, PASSWORD_ENCRYPT_ROUNDS);
+      const rawPassword: string = 'secret123';
+      const hashed: string = await bcrypt.hash(
+        rawPassword,
+        PASSWORD_ENCRYPT_ROUNDS,
+      );
 
       const user = await prisma.user.create({
         data: {
@@ -61,10 +65,11 @@ describe('AuthService (DB-based)', () => {
         },
       });
 
-      const token = await service.login({
+      const input: LogInInput = {
         email: user.email,
         password: rawPassword,
-      });
+      };
+      const token = await service.login(input);
 
       expect(typeof token).toBe('string');
 
@@ -72,6 +77,43 @@ describe('AuthService (DB-based)', () => {
         where: { id: user.id },
       });
       expect(updatedUser?.tokenVersion).toBeDefined();
+    });
+
+    it('should login a user and reuse existing tokenVersion if not null', async () => {
+      const rawPassword = 'secret123';
+      const hashed = await bcrypt.hash(rawPassword, PASSWORD_ENCRYPT_ROUNDS);
+
+      const user = await prisma.user.create({
+        data: {
+          email: 'test2@login.com',
+          passwordHash: hashed,
+          userType: 'CUSTOMER',
+          status: 'ACTIVE',
+          statusUpdatedAt: new Date(),
+          tokenVersion: 'existing-version',
+        },
+      });
+
+      await prisma.customer.create({
+        data: {
+          userId: user.id,
+          firstName: 'Customer',
+          lastName: 'Test',
+          address: 'Some address',
+          phoneNumber: '123456',
+          birthday: new Date(),
+        },
+      });
+
+      const input: LogInInput = { email: user.email, password: rawPassword };
+      const token = await service.login(input);
+
+      expect(typeof token).toBe('string');
+
+      const updatedUser = await prisma.user.findUnique({
+        where: { id: user.id },
+      });
+      expect(updatedUser?.tokenVersion).toBe('existing-version'); // no cambio tokenVersion
     });
   });
 
@@ -169,6 +211,26 @@ describe('AuthService (DB-based)', () => {
       await expect(
         service.sendRecoverEmail('unknown@mail.com'),
       ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw if mailerService.sendMail fails', async () => {
+      const user = await prisma.user.create({
+        data: {
+          email: 'failmail@test.com',
+          passwordHash: 'dummy',
+          userType: 'CUSTOMER',
+          status: 'ACTIVE',
+          statusUpdatedAt: new Date(),
+        },
+      });
+
+      jest
+        .spyOn(mailerService, 'sendMail')
+        .mockRejectedValueOnce(new Error('Mail failed'));
+
+      await expect(service.sendRecoverEmail(user.email)).rejects.toThrow(
+        'Mail failed',
+      );
     });
   });
 

@@ -2,7 +2,6 @@ import {
   Injectable,
   NotFoundException,
   UnauthorizedException,
-  InternalServerErrorException,
 } from '@nestjs/common';
 import { UserService } from 'src/user/services/user.service';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -57,7 +56,7 @@ export class AuthService {
   async registerCustomer(customerInfo: SignUpInput): Promise<string> {
     const { customer, tokenVersion } =
       await this.customerService.create(customerInfo);
-    const user = await this.prisma.user.findUnique({
+    await this.prisma.user.findUnique({
       where: { id: customer.userId },
       include: {
         userRoles: {
@@ -72,11 +71,6 @@ export class AuthService {
         },
       },
     });
-    if (!user) {
-      throw new InternalServerErrorException(
-        'The server could not create the user, try again',
-      );
-    }
     const payload: JwtPayload = {
       sub: customer.userId,
       customerId: customer.id,
