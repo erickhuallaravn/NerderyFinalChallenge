@@ -18,7 +18,6 @@ export class PromotionalDiscountsResolver {
     @Args('input') input: CreatePromotionalDiscountInput,
     @CurrentUser() user: JwtPayload,
   ): Promise<PromotionalDiscountEntity> {
-    console.log(user);
     return this.promotionalDiscountService.createPromotion(
       input,
       user.userType,

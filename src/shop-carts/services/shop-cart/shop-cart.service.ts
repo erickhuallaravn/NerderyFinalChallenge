@@ -15,7 +15,6 @@ export class ShopCartService {
       header = await this.prisma.shopCartHeader.create({
         data: {
           customerId,
-          name: 'default',
         },
       });
     }

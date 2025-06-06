@@ -19,7 +19,7 @@ export type ProductStatus =
 
 export type RowStatus = 'ACTIVE' | 'INVISIBLE' | 'DELETED';
 
-export type DiscountType = 'PERCENTAGE' | 'BONUS';
+export type DiscountType = 'PERCENTAGE' | 'BONUS' | 'BOTH';
 
 export type PaymentStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED';
 

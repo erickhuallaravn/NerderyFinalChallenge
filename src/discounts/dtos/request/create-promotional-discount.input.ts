@@ -24,6 +24,6 @@ export class CreatePromotionalDiscountInput {
   @Field({ nullable: true })
   validUntil?: Date;
 
-  @Field({ nullable: true })
-  availableStock?: number;
+  @Field()
+  availableStock: number;
 }
