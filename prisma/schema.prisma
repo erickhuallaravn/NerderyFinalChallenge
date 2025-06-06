@@ -48,8 +48,8 @@ model UserRoles {
   roleId     String    @db.Uuid
   validUntil DateTime? @map("valid_until") @db.Timestamp(6)
 
-  role Role @relation(fields: [roleId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  user User @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt DateTime? @map("updated_at") @db.Timestamp(6)
@@ -82,7 +82,7 @@ model ProductFile {
   url                String
   altText            String? @db.VarChar
 
-  productVariation ProductVariation @relation(fields: [productVariationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  productVariation ProductVariation @relation(fields: [productVariationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt DateTime? @map("updated_at") @db.Timestamp(6)
@@ -111,7 +111,7 @@ model OptionValue {
   code     String @db.VarChar
   optionId String @map("option_id") @db.Uuid
 
-  option Option @relation(fields: [optionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  option Option @relation(fields: [optionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt       DateTime? @map("updated_at") @db.Timestamp(6)
@@ -130,8 +130,8 @@ model Feature {
   optionValueId      String @db.Uuid
   productVariationId String @map("product_variation_id") @db.Uuid
 
-  optionValue      OptionValue      @relation(fields: [optionValueId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  productVariation ProductVariation @relation(fields: [productVariationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  optionValue      OptionValue      @relation(fields: [optionValueId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  productVariation ProductVariation @relation(fields: [productVariationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   status          RowStatus
   statusUpdatedAt DateTime  @map("status_updated_at") @db.Timestamp(6)
@@ -148,7 +148,7 @@ model ProductVariation {
   currencyCode   CurrencyCode @map("currency_code")
   availableStock Int          @map("available_stock")
 
-  product Product @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt       DateTime?     @map("updated_at") @db.Timestamp(6)
@@ -175,7 +175,7 @@ model Customer {
   phoneNumber String?   @map("phone_number") @db.VarChar
   birthday    DateTime? @db.Date
 
-  user User @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt DateTime? @map("updated_at") @db.Timestamp(6)
@@ -192,8 +192,8 @@ model CustomerLikedProducts {
   customerId         String @map("customer_id") @db.Uuid
   productVariationId String @map("product_variation_id") @db.Uuid
 
-  customer         Customer         @relation(fields: [customerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  productVariation ProductVariation @relation(fields: [productVariationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  customer         Customer         @relation(fields: [customerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  productVariation ProductVariation @relation(fields: [productVariationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt DateTime? @map("updated_at") @db.Timestamp(6)
@@ -211,8 +211,8 @@ model OrderItemDiscount {
   discountPercentage    Decimal? @map("discount_percentage") @db.Decimal
   bonusQuantity         Int?     @map("bonus_amount")
 
-  orderItems          OrderItem           @relation(fields: [orderDetailId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  promotionalDiscount PromotionalDiscount @relation(fields: [promotionalDiscountId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  orderItems          OrderItem           @relation(fields: [orderDetailId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  promotionalDiscount PromotionalDiscount @relation(fields: [promotionalDiscountId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt       DateTime? @map("updated_at") @db.Timestamp(6)
@@ -228,7 +228,7 @@ model OrderHeaderStatusHistory {
   orderHeaderId String  @map("order_header_id") @db.Uuid
   notes         String? @db.VarChar
 
-  orderHeader OrderHeader @relation(fields: [orderHeaderId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  orderHeader OrderHeader @relation(fields: [orderHeaderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt       DateTime?         @map("updated_at") @db.Timestamp(6)
@@ -247,8 +247,8 @@ model OrderItem {
   quantity           Decimal @db.Decimal
   subtotal           Decimal @db.Decimal
 
-  orderHeader      OrderHeader      @relation(fields: [orderHeaderId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  productVariation ProductVariation @relation(fields: [productVariationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  orderHeader      OrderHeader      @relation(fields: [orderHeaderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  productVariation ProductVariation @relation(fields: [productVariationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt       DateTime? @map("updated_at") @db.Timestamp(6)
@@ -266,7 +266,7 @@ model OrderHeader {
   customerId String  @map("customer_id") @db.Uuid
   subtotal   Decimal @db.Decimal
 
-  customer Customer @relation(fields: [customerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt DateTime? @map("updated_at") @db.Timestamp(6)
@@ -287,7 +287,7 @@ model OrderPayment {
   currencyCode    CurrencyCode @map("currency_code")
   statusMessage   String       @map("status_message") @db.VarChar
 
-  orderHeader OrderHeader @relation(fields: [orderHeaderId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  orderHeader OrderHeader @relation(fields: [orderHeaderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt       DateTime?     @map("updated_at") @db.Timestamp(6)
@@ -306,11 +306,11 @@ model PromotionalDiscount {
   requiredAmount     Int          @map("required_amount")
   bonusQuantity      Int?         @map("bonus_amount")
   discountPercentage Decimal?     @map("discount_percentage") @db.Decimal
-  validSince         DateTime?    @map("valid_since") @db.Timestamp(6)
+  validSince         DateTime     @default(now()) @map("valid_since") @db.Timestamp(6)
   validUntil         DateTime?    @map("valid_until") @db.Timestamp(6)
-  availableStock     Int?         @map("available_stock")
+  availableStock     Int          @map("available_stock")
 
-  productVariation ProductVariation @relation(fields: [productVariationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  productVariation ProductVariation @relation(fields: [productVariationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt       DateTime?       @map("updated_at") @db.Timestamp(6)
@@ -334,7 +334,7 @@ model ShopCartItem {
   createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt            DateTime? @map("updated_at") @db.Timestamp(6)
 
-  productVariation   ProductVariation @relation(fields: [productVariationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  productVariation   ProductVariation @relation(fields: [productVariationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   shoppingCartHeader ShopCartHeader   @relation(fields: [shoppingCartHeaderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   itemDiscounts ShopCartItemDiscount[]
@@ -345,11 +345,10 @@ model ShopCartItem {
 
 model ShopCartHeader {
   id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name       String    @db.VarChar
   dueDate    DateTime? @map("due_date") @db.Timestamp(6)
   customerId String    @map("customer_id") @db.Uuid
 
-  customer Customer @relation(fields: [customerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt DateTime? @map("updated_at") @db.Timestamp(6)
@@ -369,7 +368,7 @@ model ShopCartItemDiscount {
   bonusQuantity         Int?     @map("bonus_amount")
 
   shopCartItem        ShopCartItem        @relation(fields: [shopCartItemId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  promotionalDiscount PromotionalDiscount @relation(fields: [promotionalDiscountId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  promotionalDiscount PromotionalDiscount @relation(fields: [promotionalDiscountId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt DateTime? @map("updated_at") @db.Timestamp(6)
@@ -430,6 +429,7 @@ enum RowStatus {
 enum DiscountType {
   PERCENTAGE
   BONUS
+  BOTH
 
   @@map("discount_type")
   @@schema("sales")

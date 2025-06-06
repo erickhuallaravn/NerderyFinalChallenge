@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ProductFileService } from './product-file.service';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
+import { CloudinaryService } from 'src/cloudinary/services/cloudinary.service';
 import { Readable } from 'stream';
 
 describe('ProductFileService', () => {

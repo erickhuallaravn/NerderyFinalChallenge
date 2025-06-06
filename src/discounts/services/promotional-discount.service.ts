@@ -18,13 +18,30 @@ export class PromotionalDiscountService {
     }
 
     const now = new Date();
+    const {
+      name,
+      productVariationId,
+      discountType,
+      requiredAmount,
+      bonusQuantity,
+      discountPercentage,
+      validUntil,
+      availableStock,
+    } = { ...input };
     return this.prisma.promotionalDiscount.create({
       data: {
-        ...input,
+        name,
+        productVariationId,
+        discountType,
+        requiredAmount,
+        bonusQuantity,
+        discountPercentage,
+        validUntil,
+        availableStock: availableStock ?? 0,
         validSince: new Date(),
+        createdAt: now,
         status: 'ACTIVE',
         statusUpdatedAt: now,
-        createdAt: now,
       },
     });
   }
@@ -35,7 +52,7 @@ export class PromotionalDiscountService {
     });
   }
 
-  async deletePromotion(id: string, userType: string): Promise<boolean> {
+  async deletePromotion(id: string, userType: UserType): Promise<boolean> {
     if (userType !== 'CUSTOMER') {
       throw new ForbiddenException(
         `User type ${userType} can not delete promotional discounts`,

@@ -7,6 +7,12 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateOrderHeaderInput } from '../../dtos/requests/order-header/update-order-header.input';
 import { JwtPayload } from 'src/auth/types/jwt-payload.type';
+import { Prisma } from 'generated/prisma';
+
+const orderInclude = {
+  orderItems: true,
+  statusHistory: true,
+};
 
 @Injectable()
 export class OrderHeaderService {
@@ -45,7 +51,7 @@ export class OrderHeaderService {
     return order;
   }
 
-  async createOrder(user: JwtPayload, notes?: string) {
+  async createOrder(user: JwtPayload, notes?: string): Promise<Prisma.OrderHeaderGetPayload<{ include: typeof orderInclude }>> {
     const cart = await this.prisma.shopCartHeader.findFirst({
       where: { customerId: user.customerId },
       include: { cartItems: { include: { itemDiscounts: true } } },
@@ -90,6 +96,9 @@ export class OrderHeaderService {
             statusUpdatedAt: new Date(),
           },
         },
+      },
+      include: {
+        orderItems: true,
       },
     });
 

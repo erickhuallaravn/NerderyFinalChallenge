@@ -15,8 +15,15 @@ export default {
   moduleFileExtensions: ['ts', 'js', 'json'],
   rootDir: '.',
   testRegex: '.*\\.spec\\.ts$',
-  collectCoverageFrom: ['src/**/*.(t|j)s'],
-
+  collectCoverageFrom: [
+    '!src/**/*.input.ts',
+    '!src/**/*.output.ts',
+    '!src/**/*.entity.ts',
+    '!src/main.ts',
+    '!src/**/*.module.ts',
+    '!src/**/*.resolver.ts',
+    '!src/**/*.controller.ts',
+  ],
   transform: {
     '^.+\\.ts$': 'ts-jest',
   },

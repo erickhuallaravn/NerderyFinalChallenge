@@ -44,8 +44,6 @@ describe('ProductVariationService', () => {
       data: {
         name: 'Test Product',
         description: 'test-product',
-        createdAt: new Date(),
-        updatedAt: new Date(),
         status: 'AVAILABLE',
         statusUpdatedAt: new Date(),
       },
@@ -83,8 +81,6 @@ describe('ProductVariationService', () => {
       data: {
         name: 'Update Test Product',
         description: 'update-test',
-        createdAt: new Date(),
-        updatedAt: new Date(),
         status: 'AVAILABLE',
         statusUpdatedAt: new Date(),
       },
@@ -99,8 +95,6 @@ describe('ProductVariationService', () => {
         availableStock: 5,
         status: 'AVAILABLE',
         statusUpdatedAt: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
       },
     });
 
@@ -143,8 +137,6 @@ describe('ProductVariationService', () => {
       data: {
         name: 'Delete Test Product',
         description: 'delete-product',
-        createdAt: new Date(),
-        updatedAt: new Date(),
         status: 'AVAILABLE',
         statusUpdatedAt: new Date(),
       },
@@ -159,8 +151,6 @@ describe('ProductVariationService', () => {
         availableStock: 3,
         status: 'AVAILABLE',
         statusUpdatedAt: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
       },
     });
 
