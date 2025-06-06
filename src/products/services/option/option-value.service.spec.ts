@@ -2,34 +2,26 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { OptionValueService } from './option-value.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { OptionService } from './option.service';
+import { ProductModule } from 'src/products/products.module';
 
 describe('OptionValueService', () => {
   let service: OptionValueService;
   let prisma: PrismaService;
-
-  const mockOptionService = {
-    findOrCreateOption: jest.fn(),
-  };
+  let optionService: OptionService;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        OptionValueService,
-        PrismaService,
-        {
-          provide: OptionService,
-          useValue: mockOptionService,
-        },
-      ],
+      imports: [ProductModule],
+      providers: [PrismaService],
     }).compile();
 
-    service = module.get<OptionValueService>(OptionValueService);
-    prisma = module.get<PrismaService>(PrismaService);
+    service = module.get(OptionValueService);
+    prisma = module.get(PrismaService);
+    optionService = module.get(OptionService);
   });
 
   beforeEach(async () => {
     await prisma.cleanDatabase();
-    jest.clearAllMocks();
   });
 
   afterAll(async () => {
@@ -37,12 +29,7 @@ describe('OptionValueService', () => {
   });
 
   it('should return an existing option value if it exists', async () => {
-    const option = await prisma.option.create({
-      data: {
-        code: 'size',
-        name: 'Size',
-      },
-    });
+    const option = await optionService.findOrCreateOption('size');
 
     const existingValue = await prisma.optionValue.create({
       data: {
@@ -54,24 +41,14 @@ describe('OptionValueService', () => {
       },
     });
 
-    mockOptionService.findOrCreateOption.mockResolvedValue(option);
-
     const result = await service.findOrCreateValue('size', 'M');
 
     expect(result.id).toBe(existingValue.id);
     expect(result.code).toBe('M');
-    expect(mockOptionService.findOrCreateOption).toHaveBeenCalledWith('size');
   });
 
   it('should create a new option value if it does not exist', async () => {
-    const option = await prisma.option.create({
-      data: {
-        code: 'material',
-        name: 'Material',
-      },
-    });
-
-    mockOptionService.findOrCreateOption.mockResolvedValue(option);
+    const option = await optionService.findOrCreateOption('material');
 
     const result = await service.findOrCreateValue('material', 'leather');
 

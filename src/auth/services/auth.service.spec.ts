@@ -20,6 +20,7 @@ describe('AuthService (DB-based)', () => {
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
       imports: [AuthModule],
+      providers: [PrismaService],
     }).compile();
 
     service = module.get(AuthService);

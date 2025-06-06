@@ -244,7 +244,7 @@ model OrderItem {
   orderHeaderId      String  @map("order_header_id") @db.Uuid
   productName        String  @map("product_name") @db.VarChar
   productVariationId String  @map("product_variation_id") @db.Uuid
-  quantity           Decimal @db.Decimal
+  quantity           Int
   subtotal           Decimal @db.Decimal
 
   orderHeader      OrderHeader      @relation(fields: [orderHeaderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
@@ -329,7 +329,7 @@ model ShopCartItem {
   shoppingCartHeaderId String    @map("shopping_cart_header_id") @db.Uuid
   productVariationId   String    @map("product_variation_id") @db.Uuid
   productName          String
-  quantity             Decimal   @db.Decimal
+  quantity             Int
   subtotal             Decimal   @db.Money
   createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt            DateTime? @map("updated_at") @db.Timestamp(6)

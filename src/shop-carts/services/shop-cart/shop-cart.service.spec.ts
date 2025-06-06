@@ -2,10 +2,15 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ShopCartService } from './shop-cart.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { NotFoundException } from '@nestjs/common';
+import { v4 as uuidv4 } from 'uuid';
+import { PASSWORD_ENCRYPT_ROUNDS } from 'src/common/constants/app.constants';
+import * as bcrypt from 'bcrypt';
 
 describe('ShopCartService', () => {
   let service: ShopCartService;
   let prisma: PrismaService;
+
+  let customerId: string;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -18,13 +23,40 @@ describe('ShopCartService', () => {
 
   beforeEach(async () => {
     await prisma.cleanDatabase();
+
+    const rawPassword: string = 'secret123';
+    const hashed: string = await bcrypt.hash(
+      rawPassword,
+      PASSWORD_ENCRYPT_ROUNDS,
+    );
+
+    const user = await prisma.user.create({
+      data: {
+        email: 'test@login.com',
+        passwordHash: hashed,
+        userType: 'CUSTOMER',
+        status: 'ACTIVE',
+        statusUpdatedAt: new Date(),
+      },
+    });
+
+    const customer = await prisma.customer.create({
+      data: {
+        userId: user.id,
+        firstName: 'Customer',
+        lastName: 'Test',
+        address: 'Some address',
+        phoneNumber: '123456',
+        birthday: new Date(),
+      },
+    });
+
+    customerId = customer.id;
   });
 
   afterAll(async () => {
     await prisma.$disconnect();
   });
-
-  const customerId = 'customer-123';
 
   it('should create header if not exists', async () => {
     const header = await service['getOrCreateHeader'](customerId);
@@ -32,7 +64,7 @@ describe('ShopCartService', () => {
     expect(header.customerId).toBe(customerId);
 
     const headerAgain = await service['getOrCreateHeader'](customerId);
-    expect(headerAgain.id).toBe(header.id); // No se duplica
+    expect(headerAgain.id).toBe(header.id);
   });
 
   it('should return empty items when no products in cart', async () => {
@@ -44,7 +76,7 @@ describe('ShopCartService', () => {
   it('should throw when product variation does not exist', async () => {
     await expect(
       service.addOrUpdateItem(customerId, {
-        productVariationId: 'invalid-id',
+        productVariationId: uuidv4(),
         quantity: 1,
       }),
     ).rejects.toThrow(NotFoundException);
@@ -83,7 +115,7 @@ describe('ShopCartService', () => {
     const items = await prisma.shopCartItem.findMany();
     expect(items.length).toBe(1);
     expect(items[0].productName).toBe('Variation');
-    expect(items[0].subtotal).toBe(200);
+    expect(Number(items[0].subtotal)).toBe(200);
   });
 
   it('should add item with promo and meet requirements', async () => {
@@ -137,11 +169,31 @@ describe('ShopCartService', () => {
 
   it('should update existing item and remove promo if not applicable', async () => {
     const header = await service['getOrCreateHeader'](customerId);
-    const variation = await prisma.productVariation.findFirstOrThrow();
+
+    const product = await prisma.product.create({
+      data: {
+        name: 'Test Product',
+        description: 'product',
+        status: 'AVAILABLE',
+        statusUpdatedAt: new Date(),
+      },
+    });
+
+    const variation = await prisma.productVariation.create({
+      data: {
+        productId: product.id,
+        name: 'Test Variation',
+        price: 100,
+        currencyCode: 'USD',
+        availableStock: 10,
+        status: 'AVAILABLE',
+        statusUpdatedAt: new Date(),
+      },
+    });
 
     const promo = await prisma.promotionalDiscount.create({
       data: {
-       name: 'Testing promotion',
+        name: 'Testing promotion',
         productVariationId: variation.id,
         discountType: 'BOTH',
         requiredAmount: 3,
@@ -176,7 +228,7 @@ describe('ShopCartService', () => {
 
     const result = await service.addOrUpdateItem(customerId, {
       productVariationId: variation.id,
-      quantity: 1, // Ya no cumple el mínimo
+      quantity: 1,
     });
 
     expect(result).toBe(true);
@@ -185,26 +237,60 @@ describe('ShopCartService', () => {
     expect(updated?.quantity).toBe(1);
 
     const discounts = await prisma.shopCartItemDiscount.findMany();
-    expect(discounts.length).toBe(0); // Promo eliminada
+    expect(discounts.length).toBe(0);
   });
 
   it('should empty the cart', async () => {
     const header = await service['getOrCreateHeader'](customerId);
+
+    const product = await prisma.product.create({
+      data: {
+        name: 'Test Product',
+        description: 'product',
+        status: 'AVAILABLE',
+        statusUpdatedAt: new Date(),
+      },
+    });
+
+    const variation1 = await prisma.productVariation.create({
+      data: {
+        productId: product.id,
+        name: 'Var1',
+        price: 100,
+        currencyCode: 'USD',
+        availableStock: 10,
+        status: 'AVAILABLE',
+        statusUpdatedAt: new Date(),
+      },
+    });
+
+    const variation2 = await prisma.productVariation.create({
+      data: {
+        productId: product.id,
+        name: 'Var2',
+        price: 200,
+        currencyCode: 'USD',
+        availableStock: 10,
+        status: 'AVAILABLE',
+        statusUpdatedAt: new Date(),
+      },
+    });
+
     await prisma.shopCartItem.createMany({
       data: [
         {
           shoppingCartHeaderId: header.id,
-          productVariationId: 'dummy-id',
-          productName: 'X',
+          productVariationId: variation1.id,
+          productName: 'Var1',
           quantity: 1,
           subtotal: 100,
         },
         {
           shoppingCartHeaderId: header.id,
-          productVariationId: 'dummy-id2',
-          productName: 'Y',
+          productVariationId: variation2.id,
+          productName: 'Var2',
           quantity: 2,
-          subtotal: 200,
+          subtotal: 400,
         },
       ],
     });

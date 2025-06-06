@@ -10,7 +10,11 @@ import { JwtPayload } from 'src/auth/types/jwt-payload.type';
 import { Prisma } from 'generated/prisma';
 
 const orderInclude = {
-  orderItems: true,
+  orderItems: {
+    include: {
+      itemDiscounts: true,
+    },
+  },
   statusHistory: true,
 };
 
@@ -20,41 +24,40 @@ export class OrderHeaderService {
 
   async getOrders(user: JwtPayload) {
     return this.prisma.orderHeader.findMany({
-      where: {
-        customerId: user.customerId,
-      },
-      include: {
-        orderItems: {
-          include: {
-            itemDiscounts: true,
-          },
-        },
-        statusHistory: true,
-      },
+      where: { customerId: user.customerId },
+      include: orderInclude,
     });
   }
 
-  async getOrderById(user: JwtPayload, orderId: string) {
+  async getOrderById(
+    user: JwtPayload,
+    orderId: string,
+  ): Promise<Prisma.OrderHeaderGetPayload<{ include: typeof orderInclude }>> {
     const order = await this.prisma.orderHeader.findUnique({
       where: { id: orderId },
-      include: {
-        orderItems: true,
-        statusHistory: true,
-      },
+      include: orderInclude,
     });
 
     if (!order) throw new NotFoundException('Order not found');
 
-    if (user.userType !== 'MANAGER' && order.customerId !== user.customerId)
+    if (user.userType !== 'MANAGER' && order.customerId !== user.customerId) {
       throw new ForbiddenException('Access denied to this order');
+    }
 
     return order;
   }
 
-  async createOrder(user: JwtPayload, notes?: string): Promise<Prisma.OrderHeaderGetPayload<{ include: typeof orderInclude }>> {
+  async createOrder(
+    user: JwtPayload,
+    notes?: string,
+  ): Promise<Prisma.OrderHeaderGetPayload<{ include: typeof orderInclude }>> {
     const cart = await this.prisma.shopCartHeader.findFirst({
       where: { customerId: user.customerId },
-      include: { cartItems: { include: { itemDiscounts: true } } },
+      include: {
+        cartItems: {
+          include: { itemDiscounts: true },
+        },
+      },
     });
 
     if (!cart || cart.cartItems.length === 0) {
@@ -65,6 +68,9 @@ export class OrderHeaderService {
       (sum, item) => sum + Number(item.subtotal),
       0,
     );
+
+    const now = new Date();
+
     const order = await this.prisma.orderHeader.create({
       data: {
         customerId: user.customerId,
@@ -75,6 +81,8 @@ export class OrderHeaderService {
             productVariationId: item.productVariationId,
             quantity: item.quantity,
             subtotal: item.subtotal,
+            status: 'ACTIVE',
+            statusUpdatedAt: now,
             itemDiscounts: {
               create: item.itemDiscounts.map((discount) => ({
                 promotionalDiscountId: discount.promotionalDiscountId,
@@ -82,27 +90,25 @@ export class OrderHeaderService {
                 discountPercentage: discount.discountPercentage,
                 bonusQuantity: discount.bonusQuantity,
                 status: 'ACTIVE',
-                statusUpdatedAt: new Date(),
+                statusUpdatedAt: now,
               })),
             },
-            status: 'ACTIVE',
-            statusUpdatedAt: new Date(),
           })),
         },
         statusHistory: {
           create: {
-            notes,
             status: 'CREATED',
-            statusUpdatedAt: new Date(),
+            notes,
+            statusUpdatedAt: now,
           },
         },
       },
-      include: {
-        orderItems: true,
-      },
+      include: orderInclude,
     });
 
-    // Optionally clear the shopping cart here
+    await this.prisma.shopCartHeader.deleteMany({
+      where: { customerId: user.customerId },
+    });
 
     return order;
   }
@@ -111,15 +117,8 @@ export class OrderHeaderService {
     user: JwtPayload,
     orderId: string,
     input: UpdateOrderHeaderInput,
-  ) {
-    const order = await this.prisma.orderHeader.findUnique({
-      where: { id: orderId },
-    });
-
-    if (!order) throw new NotFoundException('Order not found');
-
-    if (user.userType !== 'MANAGER' && order.customerId !== user.customerId)
-      throw new ForbiddenException('Access denied to this order');
+  ): Promise<Prisma.OrderHeaderGetPayload<{ include: typeof orderInclude }>> {
+    await this.getOrderById(user, orderId);
 
     const latestStatus = await this.prisma.orderHeaderStatusHistory.findFirst({
       where: { orderHeaderId: orderId },
@@ -145,15 +144,11 @@ export class OrderHeaderService {
     return this.getOrderById(user, orderId);
   }
 
-  async anulateOrder(user: JwtPayload, orderId: string) {
-    const order = await this.prisma.orderHeader.findUnique({
-      where: { id: orderId },
-    });
-
-    if (!order) throw new NotFoundException('Order not found');
-
-    if (user.userType !== 'MANAGER' && order.customerId !== user.customerId)
-      throw new ForbiddenException('Access denied to this order');
+  async anulateOrder(
+    user: JwtPayload,
+    orderId: string,
+  ): Promise<Prisma.OrderHeaderGetPayload<{ include: typeof orderInclude }>> {
+    await this.getOrderById(user, orderId);
 
     const latestStatus = await this.prisma.orderHeaderStatusHistory.findFirst({
       where: { orderHeaderId: orderId },
@@ -167,16 +162,22 @@ export class OrderHeaderService {
       throw new BadRequestException('Only pending orders can be anulated');
     }
 
-    return this.prisma.orderHeader.update({
-      where: { id: orderId },
+    const now = new Date();
+
+    await this.prisma.orderHeaderStatusHistory.create({
       data: {
-        orderItems: {
-          updateMany: { where: {}, data: { status: 'DELETED' } },
-        },
-        statusHistory: {
-          updateMany: { where: {}, data: { status: 'ANULATED' } },
-        },
+        orderHeaderId: orderId,
+        notes: 'Order anulled',
+        status: 'ANULATED',
+        statusUpdatedAt: now,
       },
     });
+
+    await this.prisma.orderItem.updateMany({
+      where: { orderHeaderId: orderId },
+      data: { status: 'DELETED', statusUpdatedAt: now },
+    });
+
+    return this.getOrderById(user, orderId);
   }
 }

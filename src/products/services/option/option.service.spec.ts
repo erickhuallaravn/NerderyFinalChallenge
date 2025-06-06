@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OptionService } from './option.service';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { ProductModule } from 'src/products/products.module';
 
 describe('OptionService', () => {
   let service: OptionService;
@@ -8,11 +9,12 @@ describe('OptionService', () => {
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [OptionService, PrismaService],
+      imports: [ProductModule],
+      providers: [PrismaService],
     }).compile();
 
-    service = module.get<OptionService>(OptionService);
-    prisma = module.get<PrismaService>(PrismaService);
+    service = module.get(OptionService);
+    prisma = module.get(PrismaService);
   });
 
   beforeEach(async () => {
@@ -50,6 +52,7 @@ describe('OptionService', () => {
     const dbOption = await prisma.option.findUnique({
       where: { code },
     });
+
     expect(dbOption).not.toBeNull();
     expect(dbOption?.code).toBe(code);
   });

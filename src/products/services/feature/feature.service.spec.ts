@@ -3,34 +3,26 @@ import { FeatureService } from './feature.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { OptionValueService } from '../option/option-value.service';
 import { AddVariationFeatureInput } from '../../dtos/requests/variation/add-variation-feature.input';
+import { ProductModule } from 'src/products/products.module';
 
 describe('FeatureService', () => {
   let service: FeatureService;
   let prisma: PrismaService;
-
-  const mockOptionValueService = {
-    findOrCreateValue: jest.fn(),
-  };
+  let optionValueService: OptionValueService;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        FeatureService,
-        PrismaService,
-        {
-          provide: OptionValueService,
-          useValue: mockOptionValueService,
-        },
-      ],
+      imports: [ProductModule],
+      providers: [PrismaService],
     }).compile();
 
-    service = module.get<FeatureService>(FeatureService);
-    prisma = module.get<PrismaService>(PrismaService);
+    service = module.get(FeatureService);
+    prisma = module.get(PrismaService);
+    optionValueService = module.get(OptionValueService);
   });
 
   beforeEach(async () => {
     await prisma.cleanDatabase();
-    jest.clearAllMocks();
   });
 
   afterAll(async () => {
@@ -38,50 +30,38 @@ describe('FeatureService', () => {
   });
 
   it('should create a new feature if not existing', async () => {
-    // First, create required entities
     const product = await prisma.product.create({
       data: {
         name: 'Product A',
         description: '',
         status: 'AVAILABLE',
         statusUpdatedAt: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
       },
     });
 
     const variation = await prisma.productVariation.create({
       data: {
-        name: 'Test product variation',
+        name: 'Variation A',
         currencyCode: 'USD',
-        productId: product.id,
         price: 100,
         availableStock: 10,
         status: 'AVAILABLE',
         statusUpdatedAt: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        productId: product.id,
       },
     });
 
-    const option = await prisma.option.create({
+    await prisma.option.create({
       data: {
         code: 'color',
         name: 'Color',
       },
     });
 
-    const optionValue = await prisma.optionValue.create({
-      data: {
-        status: 'ACTIVE',
-        statusUpdatedAt: new Date(),
-        code: 'red',
-        name: 'Red',
-        optionId: option.id,
-      },
-    });
-
-    mockOptionValueService.findOrCreateValue.mockResolvedValue(optionValue);
+    const optionValue = await optionValueService.findOrCreateValue(
+      'color',
+      'red',
+    );
 
     const input: AddVariationFeatureInput = {
       productVariationId: variation.id,
@@ -104,38 +84,30 @@ describe('FeatureService', () => {
         description: '',
         status: 'AVAILABLE',
         statusUpdatedAt: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
       },
     });
 
     const variation = await prisma.productVariation.create({
       data: {
-        name: 'Test product variation',
+        name: 'Variation B',
         currencyCode: 'USD',
-        productId: product.id,
         price: 120,
         availableStock: 5,
         status: 'AVAILABLE',
         statusUpdatedAt: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        productId: product.id,
       },
     });
 
-    const option = await prisma.option.create({
-      data: { code: 'size', name: 'Size' },
-    });
-
-    const optionValue = await prisma.optionValue.create({
+    await prisma.option.create({
       data: {
-        code: 'M',
-        name: 'Medium',
-        optionId: option.id,
-        status: 'ACTIVE',
-        statusUpdatedAt: new Date(),
+        code: 'size',
+        name: 'Size',
       },
     });
+
+    // Crear el optionValue con el servicio real
+    const optionValue = await optionValueService.findOrCreateValue('size', 'M');
 
     const existingFeature = await prisma.feature.create({
       data: {
@@ -146,8 +118,6 @@ describe('FeatureService', () => {
       },
     });
 
-    mockOptionValueService.findOrCreateValue.mockResolvedValue(optionValue);
-
     const input: AddVariationFeatureInput = {
       productVariationId: variation.id,
       optionCode: 'size',
@@ -156,6 +126,7 @@ describe('FeatureService', () => {
 
     const result = await service.create(input);
 
+    expect(result).toBeDefined();
     expect(result.id).toBe(existingFeature.id);
   });
 
@@ -166,38 +137,32 @@ describe('FeatureService', () => {
         description: '',
         status: 'AVAILABLE',
         statusUpdatedAt: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
       },
     });
 
     const variation = await prisma.productVariation.create({
       data: {
-        name: 'Test product variation',
+        name: 'Variation C',
         currencyCode: 'USD',
-        productId: product.id,
         price: 200,
         availableStock: 2,
         status: 'AVAILABLE',
         statusUpdatedAt: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        productId: product.id,
       },
     });
 
-    const option = await prisma.option.create({
-      data: { code: 'material', name: 'Material' },
-    });
-
-    const optionValue = await prisma.optionValue.create({
+    await prisma.option.create({
       data: {
-        code: 'leather',
-        name: 'Leather',
-        optionId: option.id,
-        status: 'ACTIVE',
-        statusUpdatedAt: new Date(),
+        code: 'material',
+        name: 'Material',
       },
     });
+
+    const optionValue = await optionValueService.findOrCreateValue(
+      'material',
+      'leather',
+    );
 
     const feature = await prisma.feature.create({
       data: {
@@ -209,11 +174,13 @@ describe('FeatureService', () => {
     });
 
     const result = await service.delete(feature.id);
+
     expect(result).toBe(true);
 
-    const updated = await prisma.feature.findUnique({
+    const updatedFeature = await prisma.feature.findUnique({
       where: { id: feature.id },
     });
-    expect(updated?.status).toBe('DELETED');
+
+    expect(updatedFeature?.status).toBe('DELETED');
   });
 });

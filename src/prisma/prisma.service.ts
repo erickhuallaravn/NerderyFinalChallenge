@@ -40,16 +40,26 @@ export class PrismaService
 
   async cleanDatabase() {
     return this.$transaction([
-      this.userRoles.deleteMany(),
-      this.customer.deleteMany(),
-      this.user.deleteMany(),
       this.role.deleteMany(),
-      this.productFile.deleteMany(),
-      this.productVariation.deleteMany(),
-      this.optionValue.deleteMany(),
-      this.option.deleteMany(),
+      this.user.deleteMany(),
+      this.userRoles.deleteMany(),
       this.product.deleteMany(),
+      this.productFile.deleteMany(),
+      this.option.deleteMany(),
+      this.optionValue.deleteMany(),
       this.feature.deleteMany(),
+      this.productVariation.deleteMany(),
+      this.customer.deleteMany(),
+      this.customerLikedProducts.deleteMany(),
+      this.orderItemDiscount.deleteMany(),
+      this.orderHeaderStatusHistory.deleteMany(),
+      this.orderItem.deleteMany(),
+      this.orderHeader.deleteMany(),
+      this.orderPayment.deleteMany(),
+      this.promotionalDiscount.deleteMany(),
+      this.shopCartItem.deleteMany(),
+      this.shopCartHeader.deleteMany(),
+      this.shopCartItemDiscount.deleteMany(),
     ]);
   }
 }

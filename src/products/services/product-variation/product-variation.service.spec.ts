@@ -1,38 +1,28 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ProductVariationService } from './product-variation.service';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { FeatureService } from '../feature/feature.service';
 import { NotFoundException } from '@nestjs/common';
 import { CreateProductVariationInput } from 'src/products/dtos/requests/product-variation/create-product-variation.input';
 import { UpdateProductVariationInput } from 'src/products/dtos/requests/product-variation/update-product-variation.input';
+import { ProductModule } from 'src/products/products.module';
+import { v4 as uuidv4 } from 'uuid';
 
 describe('ProductVariationService', () => {
   let service: ProductVariationService;
   let prisma: PrismaService;
-  let featureService: FeatureService;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        ProductVariationService,
-        PrismaService,
-        {
-          provide: FeatureService,
-          useValue: {
-            create: jest.fn(),
-          },
-        },
-      ],
+      imports: [ProductModule],
+      providers: [PrismaService],
     }).compile();
 
     service = module.get<ProductVariationService>(ProductVariationService);
     prisma = module.get<PrismaService>(PrismaService);
-    featureService = module.get<FeatureService>(FeatureService);
   });
 
   beforeEach(async () => {
     await prisma.cleanDatabase();
-    jest.clearAllMocks();
   });
 
   afterAll(async () => {
@@ -67,13 +57,14 @@ describe('ProductVariationService', () => {
 
     expect(result).toBeDefined();
     expect(result.name).toBe('Test Variation');
-    expect(result.price).toBe(100);
+    expect(Number(result.price)).toBe(100);
     expect(result.status).toBe('AVAILABLE');
-    expect(featureService.create).toHaveBeenCalledWith({
-      productVariationId: result.id,
-      optionCode: 'COLOR',
-      valueCode: 'RED',
+
+    const features = await prisma.feature.findMany({
+      where: { productVariationId: result.id },
     });
+    expect(features.length).toBe(1);
+    expect(features[0].optionValueId).toBeDefined();
   });
 
   it('should update a product variation and add new features', async () => {
@@ -114,19 +105,19 @@ describe('ProductVariationService', () => {
     const updated = await service.updateProductVariation(input);
 
     expect(updated.name).toBe('Updated Name');
-    expect(updated.price).toBe(75);
+    expect(Number(updated.price)).toBe(75);
     expect(updated.availableStock).toBe(20);
-    expect(featureService.create).toHaveBeenCalledWith({
-      productVariationId: variation.id,
-      optionCode: 'SIZE',
-      valueCode: 'M',
+
+    const features = await prisma.feature.findMany({
+      where: { productVariationId: variation.id },
     });
+    expect(features.some((f) => f.optionValueId)).toBe(true);
   });
 
   it('should throw if variation to update does not exist', async () => {
     await expect(
       service.updateProductVariation({
-        productVariationId: 'nonexistent',
+        productVariationId: uuidv4(),
         name: 'Name',
       }),
     ).rejects.toThrow(NotFoundException);
@@ -165,7 +156,7 @@ describe('ProductVariationService', () => {
   });
 
   it('should throw if trying to delete non-existing variation', async () => {
-    await expect(service.deleteProductVariation('nonexistent')).rejects.toThrow(
+    await expect(service.deleteProductVariation(uuidv4())).rejects.toThrow(
       NotFoundException,
     );
   });

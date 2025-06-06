@@ -2,36 +2,47 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { StripeService } from './stripe.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AuthService } from 'src/auth/services/auth.service';
-import { UserService } from 'src/user/services/user.service';
-import { CustomerService } from 'src/customer/services/customer.service';
 import { JwtService } from '@nestjs/jwt';
 import { NotFoundException } from '@nestjs/common';
+import { AuthModule } from 'src/auth/auth.module';
+import { CustomerModule } from 'src/customer/customer.module';
+import { UserModule } from 'src/user/user.module';
+import { RolePermission } from 'generated/prisma';
+import { JwtPayload } from 'src/auth/types/jwt-payload.type';
 
 describe('StripeService (integration)', () => {
   let service: StripeService;
   let prisma: PrismaService;
   let authService: AuthService;
   let jwtService: JwtService;
-  let jwtPayload: any;
+  let jwtPayload: JwtPayload;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        StripeService,
-        PrismaService,
-        AuthService,
-        UserService,
-        CustomerService,
-        JwtService,
-      ],
+      imports: [AuthModule, CustomerModule, UserModule],
+      providers: [StripeService, PrismaService, JwtService],
     }).compile();
 
     service = module.get<StripeService>(StripeService);
     prisma = module.get<PrismaService>(PrismaService);
     authService = module.get<AuthService>(AuthService);
     jwtService = module.get<JwtService>(JwtService);
+  });
 
+  beforeEach(async () => {
     await prisma.cleanDatabase();
+    await prisma.role.create({
+      data: {
+        name: 'STANDARD_CUSTOMER',
+        description: 'Standard role',
+        permissions: [
+          RolePermission.READ,
+          RolePermission.WRITE,
+          RolePermission.UPDATE,
+          RolePermission.DELETE,
+        ],
+      },
+    });
 
     const token = await authService.registerCustomer({
       email: 'stripe@email.com',
@@ -115,14 +126,14 @@ describe('StripeService (integration)', () => {
       const urlObj = new URL(url);
       const sessionId = urlObj.searchParams.get('session_id');
 
-      // Este test solo es válido si el checkout fue completado y redirigido con éxito.
-      // Como alternativa, puedes crear una sesión sin redirigir para pruebas locales.
-
-      if (sessionId) {
-        const session = await service.retrieveSession(sessionId);
-        expect(session.id).toBe(sessionId);
-        expect(session.object).toBe('checkout.session');
+      if (!sessionId) {
+        console.warn('session_id no presente en la URL, test omitido.');
+        return;
       }
+
+      const session = await service.retrieveSession(sessionId);
+      expect(session.id).toBe(sessionId);
+      expect(session.object).toBe('checkout.session');
     });
   });
 
@@ -131,9 +142,7 @@ describe('StripeService (integration)', () => {
       const rawBody = Buffer.from(JSON.stringify({ id: 'evt_test' }));
       const fakeSignature = 'invalid-signature';
 
-      expect(() =>
-        service.handleWebhook(rawBody, fakeSignature),
-      ).toThrow();
+      expect(() => service.handleWebhook(rawBody, fakeSignature)).toThrow();
     });
   });
 });

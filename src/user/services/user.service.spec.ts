@@ -8,14 +8,9 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
-jest.mock('bcrypt', () => ({
-  compare: jest.fn(),
-  hash: jest.fn(),
-}));
+const PASSWORD_ENCRYPT_ROUNDS = 10;
 
-const PASSWORD_ENCRYPT_ROUNDS: number = 10;
-
-describe('User services functions', () => {
+describe('UserService', () => {
   let service: UserService;
   let prisma: PrismaService;
 
@@ -30,15 +25,24 @@ describe('User services functions', () => {
 
   beforeEach(async () => {
     await prisma.cleanDatabase();
-
-    jest.clearAllMocks();
   });
 
   afterAll(async () => {
     await prisma.$disconnect();
   });
 
+  const createStandardRole = () =>
+    prisma.role.create({
+      data: {
+        name: 'STANDARD_CUSTOMER',
+        description: 'Standard customer role',
+        permissions: ['READ', 'UPDATE', 'WRITE', 'DELETE'],
+      },
+    });
+
   it('should find user by credentials if valid', async () => {
+    await createStandardRole();
+
     const password = 'correct-password';
     const hash = await bcrypt.hash(password, PASSWORD_ENCRYPT_ROUNDS);
 
@@ -55,8 +59,6 @@ describe('User services functions', () => {
       },
     });
 
-    (bcrypt.compare as jest.Mock).mockResolvedValue(true);
-
     const result = await service.findByCredentials({
       email: user.email,
       password,
@@ -69,16 +71,23 @@ describe('User services functions', () => {
     await expect(
       service.findByCredentials({
         email: 'notfound@example.com',
-        password: 'password',
+        password: 'irrelevant',
       }),
     ).rejects.toThrow(NotFoundException);
   });
 
   it('should throw UnauthorizedException if password is incorrect', async () => {
+    await createStandardRole();
+
+    const passwordHash = await bcrypt.hash(
+      'correct-password',
+      PASSWORD_ENCRYPT_ROUNDS,
+    );
+
     const user = await prisma.user.create({
       data: {
         email: 'test@example.com',
-        passwordHash: await bcrypt.hash('correct-password', 10),
+        passwordHash,
         userType: 'CUSTOMER',
         tokenVersion: null,
         createdAt: new Date(),
@@ -87,8 +96,6 @@ describe('User services functions', () => {
         statusUpdatedAt: new Date(),
       },
     });
-
-    (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
     await expect(
       service.findByCredentials({
@@ -99,49 +106,34 @@ describe('User services functions', () => {
   });
 
   it('should create a new user with STANDARD_CUSTOMER role', async () => {
-    const role = await prisma.role.create({
-      data: {
-        name: 'STANDARD_CUSTOMER',
-        description: 'The standard role for most of the customers',
-        permissions: ['READ', 'UPDATE', 'WRITE', 'DELETE'],
-      },
-    });
-
-    (bcrypt.hash as jest.Mock).mockResolvedValue('hashed-password');
+    await createStandardRole();
 
     const result = await service.create({
       newUserInfo: {
-        firstName: 'newUserFirstName',
-        lastName: 'newUserLastName',
-        email: 'new@example.com',
-        password: 'new-password',
+        firstName: 'Alice',
+        lastName: 'Smith',
+        email: 'alice@example.com',
+        password: 'secure-password',
       },
     });
 
-    expect(result.email).toBe('new@example.com');
-
-    await prisma.userRoles.create({
-      data: {
-        roleId: role.id,
-        userId: result.id,
-      },
-    });
+    expect(result.email).toBe('alice@example.com');
 
     const createdUser = await prisma.user.findUnique({
-      where: { email: 'new@example.com' },
-      include: {
-        userRoles: true,
-      },
+      where: { id: result.id },
+      include: { userRoles: true },
     });
 
     expect(createdUser?.userRoles.length).toBeGreaterThan(0);
   });
 
   it('should throw ConflictException if email is already registered', async () => {
+    await createStandardRole();
+
     await prisma.user.create({
       data: {
-        email: 'existing@example.com',
-        passwordHash: 'hash',
+        email: 'taken@example.com',
+        passwordHash: 'irrelevant-hash',
         userType: 'CUSTOMER',
         tokenVersion: null,
         createdAt: new Date(),
@@ -154,9 +146,9 @@ describe('User services functions', () => {
     await expect(
       service.create({
         newUserInfo: {
-          firstName: 'John',
-          lastName: 'Doe',
-          email: 'existing@example.com',
+          firstName: 'Bob',
+          lastName: 'Jones',
+          email: 'taken@example.com',
           password: '123456',
         },
       }),
@@ -167,20 +159,25 @@ describe('User services functions', () => {
     await expect(
       service.create({
         newUserInfo: {
-          firstName: 'Jane',
-          lastName: 'Doe',
-          email: 'jane@example.com',
-          password: 'new-password',
+          firstName: 'NoRole',
+          lastName: 'User',
+          email: 'norole@example.com',
+          password: 'abc123',
         },
       }),
     ).rejects.toThrow(NotFoundException);
   });
 
   it('should update user password and return true', async () => {
+    await createStandardRole();
+
     const user = await prisma.user.create({
       data: {
-        email: 'reset@example.com',
-        passwordHash: 'old-hash',
+        email: 'changepass@example.com',
+        passwordHash: await bcrypt.hash(
+          'old-password',
+          PASSWORD_ENCRYPT_ROUNDS,
+        ),
         userType: 'CUSTOMER',
         tokenVersion: null,
         createdAt: new Date(),
@@ -190,18 +187,23 @@ describe('User services functions', () => {
       },
     });
 
-    (bcrypt.hash as jest.Mock).mockResolvedValue('new-hash');
-
     const result = await service.updatePassword('new-password', {
       sub: user.id,
-      customerId: 'customer_id',
+      customerId: 'dummy-customer',
       userType: 'CUSTOMER',
-      tokenVersion: 'version',
+      tokenVersion: '1',
     });
 
     expect(result).toBe(true);
 
-    const updated = await prisma.user.findUnique({ where: { id: user.id } });
-    expect(updated?.passwordHash).toBe('new-hash');
+    const updatedUser = await prisma.user.findUnique({
+      where: { id: user.id },
+    });
+
+    const isMatch = await bcrypt.compare(
+      'new-password',
+      updatedUser!.passwordHash,
+    );
+    expect(isMatch).toBe(true);
   });
 });
