@@ -1,8 +1,8 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Test, TestingModule } from '@nestjs/testing';
 import { ProductFileService } from './product-file.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ProductModule } from 'src/products/products.module';
+import { CloudinaryService } from 'src/cloudinary/services/cloudinary.service';
 import { v4 as uuidv4 } from 'uuid';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -14,7 +14,20 @@ describe('ProductFileService', () => {
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
       imports: [ProductModule],
-      providers: [PrismaService],
+      providers: [
+        PrismaService,
+        {
+          provide: CloudinaryService,
+          useValue: {
+            upload: jest.fn().mockResolvedValue({
+              secure_url:
+                'https://res.cloudinary.com/demo/image/upload/products/test-image.jpg',
+              public_id: 'products/test-image',
+            }),
+            delete: jest.fn().mockResolvedValue({ result: 'ok' }),
+          },
+        },
+      ],
     }).compile();
 
     service = module.get(ProductFileService);
@@ -60,6 +73,7 @@ describe('ProductFileService', () => {
       mimetype: 'image/jpeg',
       encoding: '7bit',
     };
+
     const result = await service.upload({
       file: Promise.resolve(mockFile as any),
       productVariationId: variation.id,

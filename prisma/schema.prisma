@@ -12,7 +12,7 @@ datasource db {
 
 model Role {
   id          String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name        String           @db.VarChar
+  name        String           @unique @db.VarChar
   description String           @db.VarChar
   permissions RolePermission[]
   createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamp(6)

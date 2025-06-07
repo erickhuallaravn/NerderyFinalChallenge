@@ -39,11 +39,8 @@ describe('AuthService (DB-based)', () => {
 
   describe('login()', () => {
     it('should login a user and set tokenVersion if null', async () => {
-      const rawPassword: string = 'secret123';
-      const hashed: string = await bcrypt.hash(
-        rawPassword,
-        PASSWORD_ENCRYPT_ROUNDS,
-      );
+      const rawPassword = 'secret123';
+      const hashed = await bcrypt.hash(rawPassword, PASSWORD_ENCRYPT_ROUNDS);
 
       const user = await prisma.user.create({
         data: {
@@ -66,12 +63,10 @@ describe('AuthService (DB-based)', () => {
         },
       });
 
-      const input: LogInInput = {
+      const token = await service.login({
         email: user.email,
         password: rawPassword,
-      };
-      const token = await service.login(input);
-
+      });
       expect(typeof token).toBe('string');
 
       const updatedUser = await prisma.user.findUnique({
@@ -106,15 +101,58 @@ describe('AuthService (DB-based)', () => {
         },
       });
 
-      const input: LogInInput = { email: user.email, password: rawPassword };
-      const token = await service.login(input);
-
+      const token = await service.login({
+        email: user.email,
+        password: rawPassword,
+      });
       expect(typeof token).toBe('string');
 
       const updatedUser = await prisma.user.findUnique({
         where: { id: user.id },
       });
-      expect(updatedUser?.tokenVersion).toBe('existing-version'); // no cambio tokenVersion
+      expect(updatedUser?.tokenVersion).toBe('existing-version');
+    });
+
+    it('should throw UnauthorizedException if password is incorrect', async () => {
+      const rawPassword = 'correctpass';
+      const hashed = await bcrypt.hash(rawPassword, PASSWORD_ENCRYPT_ROUNDS);
+
+      await prisma.user.create({
+        data: {
+          email: 'wrongpass@test.com',
+          passwordHash: hashed,
+          userType: 'CUSTOMER',
+          status: 'ACTIVE',
+          statusUpdatedAt: new Date(),
+        },
+      });
+
+      const input: LogInInput = {
+        email: 'wrongpass@test.com',
+        password: 'incorrectpass',
+      };
+      await expect(service.login(input)).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should throw if user status is not ACTIVE', async () => {
+      const rawPassword = 'secret123';
+      const hashed = await bcrypt.hash(rawPassword, PASSWORD_ENCRYPT_ROUNDS);
+
+      await prisma.user.create({
+        data: {
+          email: 'inactive@login.com',
+          passwordHash: hashed,
+          userType: 'CUSTOMER',
+          status: 'INACTIVE',
+          statusUpdatedAt: new Date(),
+        },
+      });
+
+      const input: LogInInput = {
+        email: 'inactive@login.com',
+        password: rawPassword,
+      };
+      await expect(service.login(input)).rejects.toThrow(UnauthorizedException);
     });
   });
 
@@ -152,6 +190,17 @@ describe('AuthService (DB-based)', () => {
       });
       expect(userRoles.length).toBeGreaterThan(0);
     });
+
+    it('should throw if STANDARD_CUSTOMER role is missing', async () => {
+      await expect(
+        service.registerCustomer({
+          email: 'noroletest@test.com',
+          password: 'password123',
+          firstName: 'No',
+          lastName: 'Role',
+        }),
+      ).rejects.toThrow();
+    });
   });
 
   describe('logout()', () => {
@@ -173,6 +222,21 @@ describe('AuthService (DB-based)', () => {
         where: { id: user.id },
       });
       expect(updatedUser?.tokenVersion).toBeNull();
+    });
+
+    it('should handle logout when tokenVersion is already null', async () => {
+      const user = await prisma.user.create({
+        data: {
+          email: 'nulltoken@test.com',
+          passwordHash: 'dummy',
+          userType: 'CUSTOMER',
+          status: 'ACTIVE',
+          statusUpdatedAt: new Date(),
+          tokenVersion: null,
+        },
+      });
+
+      await expect(service.logout(user.id)).resolves.toBeUndefined();
     });
   });
 
@@ -233,6 +297,22 @@ describe('AuthService (DB-based)', () => {
         'Mail failed',
       );
     });
+
+    it('should throw if user is not CUSTOMER (e.g., MANAGER)', async () => {
+      await prisma.user.create({
+        data: {
+          email: 'manager@test.com',
+          passwordHash: 'dummy',
+          userType: 'MANAGER',
+          status: 'ACTIVE',
+          statusUpdatedAt: new Date(),
+        },
+      });
+
+      await expect(
+        service.sendRecoverEmail('manager@test.com'),
+      ).rejects.toThrow();
+    });
   });
 
   describe('updatePassword()', () => {
@@ -268,6 +348,31 @@ describe('AuthService (DB-based)', () => {
       await expect(
         service.updatePassword('invalid.token', 'pass'),
       ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should throw if user from token does not exist', async () => {
+      const token = await jwtService.signAsync(
+        { sub: 'non-existent-user-id' },
+        { expiresIn: '15m' },
+      );
+
+      await expect(service.updatePassword(token, 'newpass')).rejects.toThrow();
+    });
+
+    it('should throw if user has no passwordHash (unexpected case)', async () => {
+      const user = await prisma.user.create({
+        data: {
+          email: 'nopasshash@test.com',
+          passwordHash: '',
+          userType: 'CUSTOMER',
+          status: 'ACTIVE',
+          statusUpdatedAt: new Date(),
+        },
+      });
+
+      const token = await jwtService.signAsync({ sub: user.id });
+
+      await expect(service.updatePassword(token, 'newpass')).rejects.toThrow();
     });
   });
 });

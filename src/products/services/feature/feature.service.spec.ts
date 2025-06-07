@@ -183,4 +183,64 @@ describe('FeatureService', () => {
 
     expect(updatedFeature?.status).toBe('DELETED');
   });
+
+  it('should create a new feature if existing one is deleted', async () => {
+    const product = await prisma.product.create({
+      data: {
+        name: 'Product D',
+        description: '',
+        status: 'AVAILABLE',
+        statusUpdatedAt: new Date(),
+      },
+    });
+
+    const variation = await prisma.productVariation.create({
+      data: {
+        name: 'Variation D',
+        currencyCode: 'USD',
+        price: 80,
+        availableStock: 8,
+        status: 'AVAILABLE',
+        statusUpdatedAt: new Date(),
+        productId: product.id,
+      },
+    });
+
+    await prisma.option.create({
+      data: {
+        code: 'fabric',
+        name: 'Fabric',
+      },
+    });
+
+    const optionValue = await optionValueService.findOrCreateValue(
+      'fabric',
+      'cotton',
+    );
+
+    const deletedFeature = await prisma.feature.create({
+      data: {
+        productVariationId: variation.id,
+        optionValueId: optionValue.id,
+        status: 'DELETED',
+        statusUpdatedAt: new Date(),
+      },
+    });
+
+    const input: AddVariationFeatureInput = {
+      productVariationId: variation.id,
+      optionCode: 'fabric',
+      valueCode: 'cotton',
+    };
+
+    const result = await service.create(input);
+
+    expect(result).toBeDefined();
+    expect(result.id).not.toBe(deletedFeature.id);
+    expect(result.status).toBe('ACTIVE');
+  });
+
+  it('should return false when deleting a non-existent feature', async () => {
+    await expect(service.delete('non-existent-id')).rejects.toThrow();
+  });
 });

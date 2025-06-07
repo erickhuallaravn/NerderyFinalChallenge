@@ -304,4 +304,153 @@ describe('ShopCartService', () => {
 
     expect(items.length).toBe(0);
   });
+
+  it('should skip promo if quantity does not meet requirement (new item)', async () => {
+    const product = await prisma.product.create({
+      data: {
+        name: 'Promo Product',
+        description: 'promo-product',
+        status: 'AVAILABLE',
+        statusUpdatedAt: new Date(),
+      },
+    });
+
+    const variation = await prisma.productVariation.create({
+      data: {
+        productId: product.id,
+        name: 'Promo Variation',
+        price: 100,
+        currencyCode: 'USD',
+        availableStock: 100,
+        status: 'AVAILABLE',
+        statusUpdatedAt: new Date(),
+      },
+    });
+
+    await prisma.promotionalDiscount.create({
+      data: {
+        name: 'Promo skip test',
+        productVariationId: variation.id,
+        discountType: 'BONUS',
+        requiredAmount: 5, // greater than quantity
+        bonusQuantity: 2,
+        validUntil: new Date(Date.now() + 10000),
+        availableStock: 50,
+        status: 'ACTIVE',
+        statusUpdatedAt: new Date(),
+      },
+    });
+
+    const result = await service.addOrUpdateItem(customerId, {
+      productVariationId: variation.id,
+      quantity: 2,
+    });
+
+    expect(result).toBe(true);
+
+    const discounts = await prisma.shopCartItemDiscount.findMany();
+    expect(discounts.length).toBe(0);
+  });
+
+  it('should apply promo with undefined bonus and discount', async () => {
+    const product = await prisma.product.create({
+      data: {
+        name: 'Product',
+        description: 'product',
+        status: 'AVAILABLE',
+        statusUpdatedAt: new Date(),
+      },
+    });
+
+    const variation = await prisma.productVariation.create({
+      data: {
+        productId: product.id,
+        name: 'Variation',
+        price: 150,
+        currencyCode: 'USD',
+        availableStock: 20,
+        status: 'AVAILABLE',
+        statusUpdatedAt: new Date(),
+      },
+    });
+
+    const promo = await prisma.promotionalDiscount.create({
+      data: {
+        name: 'Null bonus/discount',
+        productVariationId: variation.id,
+        discountType: 'PERCENTAGE',
+        requiredAmount: 2,
+        discountPercentage: null,
+        bonusQuantity: null,
+        validUntil: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        availableStock: 10,
+        status: 'ACTIVE',
+        statusUpdatedAt: new Date(),
+      },
+    });
+
+    const result = await service.addOrUpdateItem(customerId, {
+      productVariationId: variation.id,
+      quantity: 3,
+    });
+
+    expect(result).toBe(true);
+
+    const discount = await prisma.shopCartItemDiscount.findFirst();
+    expect(discount).toBeDefined();
+    expect(discount?.promotionalDiscountId).toBe(promo.id);
+  });
+
+  it('should apply promo on update if requirement is now met', async () => {
+    const product = await prisma.product.create({
+      data: {
+        name: 'Upgrade Promo',
+        description: 'update promo test',
+        status: 'AVAILABLE',
+        statusUpdatedAt: new Date(),
+      },
+    });
+
+    const variation = await prisma.productVariation.create({
+      data: {
+        productId: product.id,
+        name: 'Upgrade Variation',
+        price: 120,
+        currencyCode: 'USD',
+        availableStock: 100,
+        status: 'AVAILABLE',
+        statusUpdatedAt: new Date(),
+      },
+    });
+
+    const promo = await prisma.promotionalDiscount.create({
+      data: {
+        name: 'Promo for upgrade',
+        productVariationId: variation.id,
+        discountType: 'PERCENTAGE',
+        requiredAmount: 3,
+        discountPercentage: 5,
+        validUntil: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        availableStock: 20,
+        status: 'ACTIVE',
+        statusUpdatedAt: new Date(),
+      },
+    });
+
+    await service.addOrUpdateItem(customerId, {
+      productVariationId: variation.id,
+      quantity: 1,
+    });
+
+    const result = await service.addOrUpdateItem(customerId, {
+      productVariationId: variation.id,
+      quantity: 3,
+    });
+
+    expect(result).toBe(true);
+
+    const discount = await prisma.shopCartItemDiscount.findFirst();
+    expect(discount).toBeDefined();
+    expect(discount?.promotionalDiscountId).toBe(promo.id);
+  });
 });
