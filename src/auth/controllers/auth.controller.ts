@@ -1,6 +1,5 @@
 import {
   Controller,
-  Request,
   Post,
   Body,
   Patch,
@@ -8,11 +7,12 @@ import {
 } from '@nestjs/common';
 import { AuthService } from '../services/auth.service';
 import { LogInInput } from '../dtos/requests/login/login.input';
-import { SignUpInput } from '../dtos/requests/signup/signup.input';
+import { CustomerSignUpInput } from '../dtos/requests/signup/customerSignup.input';
 import { AuthTokenResponseOutput } from '../dtos/responses/auth-token-response.output';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { JwtPayload } from 'src/auth/types/jwt-payload.type';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { ManagerSignUpInput } from '../dtos/requests/signup/managerSignup.input';
 
 @Controller('auth')
 export class AuthController {
@@ -27,7 +27,7 @@ export class AuthController {
   }
 
   @Post('sign-up')
-  async signUp(@Body() input: SignUpInput): Promise<AuthTokenResponseOutput> {
+  async signUp(@Body() input: CustomerSignUpInput): Promise<AuthTokenResponseOutput> {
     const token = await this.authService.registerCustomer(input);
     return { accessToken: token };
   }
@@ -37,6 +37,13 @@ export class AuthController {
   async signOut(@CurrentUser() req: JwtPayload): Promise<{ message: string }> {
     await this.authService.logout(req.sub);
     return { message: 'Logged out succesfully' };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('sign-up/manager')
+  async managerSignUp(@CurrentUser() credentials: JwtPayload, @Body() input: ManagerSignUpInput): Promise<AuthTokenResponseOutput> {
+    const token = await this.authService.registerManager(input, credentials);
+    return { accessToken: token };
   }
 
   @Post('send-recover-email')

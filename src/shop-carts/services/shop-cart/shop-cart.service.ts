@@ -1,12 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AddToShopCartInput } from '../../dtos/requests/shop-cart/add-to-shop-cart.input';
+import { JwtPayload } from 'src/auth/types/jwt-payload.type';
+import { RowStatus } from 'generated/prisma';
 
 @Injectable()
 export class ShopCartService {
   constructor(private prisma: PrismaService) {}
 
-  async getOrCreateHeader(customerId: string) {
+  async getOrCreateHeader(authPayload: JwtPayload) {
+    const customerId = authPayload.customerId!;
     let header = await this.prisma.shopCartHeader.findFirst({
       where: { customerId },
     });
@@ -23,8 +26,8 @@ export class ShopCartService {
     return header;
   }
 
-  async getItems(customerId: string) {
-    const header = await this.getOrCreateHeader(customerId);
+  async getItems(authPayload: JwtPayload) {
+    const header = await this.getOrCreateHeader(authPayload);
 
     return this.prisma.shopCartItem.findMany({
       where: { shoppingCartHeaderId: header.id },
@@ -35,7 +38,7 @@ export class ShopCartService {
   }
 
   async addOrUpdateItem(
-    customerId: string,
+    authPayload: JwtPayload,
     input: AddToShopCartInput,
   ): Promise<boolean> {
     const { productVariationId, quantity } = input;
@@ -46,7 +49,7 @@ export class ShopCartService {
     if (!productInfo)
       throw new NotFoundException('The product specified does not exist.');
 
-    const header = await this.getOrCreateHeader(customerId);
+    const header = await this.getOrCreateHeader(authPayload);
 
     const existing = await this.prisma.shopCartItem.findFirst({
       where: {
@@ -59,7 +62,7 @@ export class ShopCartService {
       where: {
         productVariationId,
         validUntil: { gte: new Date() },
-        status: 'ACTIVE',
+        status: RowStatus.ACTIVE,
       },
     });
 
@@ -139,8 +142,8 @@ export class ShopCartService {
     return true;
   }
 
-  async emptyCart(customerId: string) {
-    const header = await this.getOrCreateHeader(customerId);
+  async emptyCart(authPayload: JwtPayload) {
+    const header = await this.getOrCreateHeader(authPayload);
     await this.prisma.shopCartItem.deleteMany({
       where: { shoppingCartHeaderId: header.id },
     });

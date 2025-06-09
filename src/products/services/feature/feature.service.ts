@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { OptionValueService } from '../option/option-value.service';
-import { Feature } from 'generated/prisma';
+import { Feature, RowStatus } from 'generated/prisma';
 import { AddVariationFeatureInput } from '../../dtos/requests/variation/add-variation-feature.input';
 
 @Injectable()
@@ -30,7 +30,7 @@ export class FeatureService {
       data: {
         productVariationId: input.productVariationId,
         optionValueId: optionValue.id,
-        status: 'ACTIVE',
+        status: RowStatus.ACTIVE,
         statusUpdatedAt: new Date(),
       },
     });
@@ -40,7 +40,7 @@ export class FeatureService {
     await this.prisma.feature.update({
       where: { id: featureId },
       data: {
-        status: 'DELETED',
+        status: RowStatus.DELETED,
         statusUpdatedAt: new Date(),
       },
     });

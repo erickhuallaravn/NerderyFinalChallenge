@@ -1,17 +1,13 @@
-import {
-  Injectable,
-  ConflictException,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { User } from 'generated/prisma';
+import { Role, RowStatus, User, UserType } from 'generated/prisma';
 import * as bcrypt from 'bcrypt';
 import { LogInInput } from '../../auth/dtos/requests/login/login.input';
-import { SignUpInput } from '../../auth/dtos/requests/signup/signup.input';
+import { CustomerSignUpInput } from '../../auth/dtos/requests/signup/customerSignup.input';
+import { ManagerSignUpInput } from 'src/auth/dtos/requests/signup/managerSignup.input';
 import { JwtPayload } from 'src/auth/types/jwt-payload.type';
-
-const PASSWORD_ENCRYPT_ROUNDS: number = 10;
+import { PASSWORD_ENCRYPT_ROUNDS } from 'src/common/constants/app.constants';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class UserService {
@@ -19,7 +15,7 @@ export class UserService {
 
   async findByCredentials(userCredentials: LogInInput): Promise<User> {
     const { email, password } = userCredentials;
-    const existingUser = await this.prisma.user.findUnique({
+    const existingUser = await this.prisma.user.findUniqueOrThrow({
       where: { email: email },
       include: {
         userRoles: {
@@ -35,57 +31,73 @@ export class UserService {
       },
     });
 
-    if (!existingUser || !existingUser.passwordHash) {
-      throw new NotFoundException('El usuario no se encuentra registrado.');
-    }
-
-    const isPasswordValid = await bcrypt.compare(
+    const isPasswordValid: boolean = await bcrypt.compare(
       password,
       existingUser.passwordHash,
     );
 
     if (!isPasswordValid) {
       throw new UnauthorizedException(
-        'Las credenciales proporcionadas son incorrectas.',
+        'The provided credentials were incorrect.',
       );
     }
     return existingUser;
   }
 
-  async create(params: { newUserInfo: SignUpInput }): Promise<User> {
-    const { newUserInfo } = params;
-
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email: newUserInfo.email },
-    });
-
-    if (existingUser) {
-      throw new ConflictException('El email ya está registrado');
-    }
+  async createCustomer(customerInfo: CustomerSignUpInput): Promise<User> {
+    const tokenVersion = uuidv4();
 
     const passwordHash = await bcrypt.hash(
-      newUserInfo.password,
+      customerInfo.password,
       PASSWORD_ENCRYPT_ROUNDS,
     );
     const newUser = await this.prisma.user.create({
       data: {
-        email: newUserInfo.email,
+        email: customerInfo.email,
         passwordHash: passwordHash,
-        userType: 'CUSTOMER',
-        status: 'ACTIVE',
+        userType: UserType.CUSTOMER,
+        tokenVersion: tokenVersion,
+        status: RowStatus.ACTIVE,
         statusUpdatedAt: new Date(),
       },
     });
 
-    const customerRole = await this.prisma.role.findFirst({
-      where: { name: 'STANDARD_CUSTOMER' },
+    const customerRole: Role = await this.prisma.role.findFirstOrThrow({
+      where: { name: 'STANDARD_CUSTOMER_ROLE' },
     });
 
-    if (!customerRole) {
-      throw new NotFoundException(
-        'El rol STANDARD_CUSTOMER no está configurado en el sistema',
-      );
-    }
+    await this.prisma.userRoles.create({
+      data: {
+        userId: newUser.id,
+        roleId: customerRole.id,
+        validUntil: null,
+      },
+    });
+
+    return newUser;
+  }
+
+  async createManager(managerInfo: ManagerSignUpInput): Promise<User> {
+    const tokenVersion = uuidv4();
+
+    const passwordHash = await bcrypt.hash(
+      managerInfo.password,
+      PASSWORD_ENCRYPT_ROUNDS,
+    );
+    const newUser = await this.prisma.user.create({
+      data: {
+        email: managerInfo.email,
+        passwordHash: passwordHash,
+        userType: UserType.MANAGER,
+        tokenVersion: tokenVersion,
+        status: RowStatus.ACTIVE,
+        statusUpdatedAt: new Date(),
+      },
+    });
+
+    const customerRole: Role = await this.prisma.role.findFirstOrThrow({
+      where: { name: 'STANDAR_MANAGER_ROLE' },
+    });
 
     await this.prisma.userRoles.create({
       data: {

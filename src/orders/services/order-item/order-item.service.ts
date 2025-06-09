@@ -8,6 +8,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { JwtPayload } from 'src/auth/types/jwt-payload.type';
 import { CreateOrderItemInput } from '../../dtos/requests/order-item/create-order-item.input';
 import { UpdateOrderItemInput } from '../../dtos/requests/order-item/update-order-item.input';
+import { RowStatus } from 'generated/prisma';
 
 @Injectable()
 export class OrderItemService {
@@ -83,7 +84,7 @@ export class OrderItemService {
         productVariationId: input.productVariationId,
         quantity: input.quantity,
         subtotal: input.subtotal,
-        status: 'ACTIVE',
+        status: RowStatus.ACTIVE,
         statusUpdatedAt: new Date(),
         itemDiscounts: {
           create: input.itemDiscounts?.map((d) => ({
@@ -91,7 +92,7 @@ export class OrderItemService {
             requiredAmount: d.requiredAmount,
             discountPercentage: d.discountPercentage,
             bonusQuantity: d.bonusQuantity,
-            status: 'ACTIVE',
+            status: RowStatus.ACTIVE,
             statusUpdatedAt: new Date(),
           })),
         },
@@ -177,7 +178,7 @@ export class OrderItemService {
     return this.prisma.orderItem.update({
       where: { id: itemId },
       data: {
-        status: 'DELETED',
+        status: RowStatus.DELETED,
         statusUpdatedAt: new Date(),
       },
     });

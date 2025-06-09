@@ -6,28 +6,35 @@ import { JwtPayload } from 'src/auth/types/jwt-payload.type';
 import { OrderHeaderService } from '../../services/order-header/order-header.service';
 import { OrderHeader } from '../../models/order-header.model';
 import { UpdateOrderHeaderInput } from '../../dtos/requests/order-header/update-order-header.input';
+import { ValidCustomerPayload, ValidManagerPayload } from 'src/auth/decorators/valid-auth-payload.decorator';
 
 @Resolver(() => OrderHeader)
 export class OrderHeaderResolver {
   constructor(private readonly orderHeaderService: OrderHeaderService) {}
 
   @UseGuards(GqlAuthGuard)
-  @Query(() => [OrderHeader], { name: 'getOrders' })
-  async getOrders(@CurrentUser() user: JwtPayload) {
+  @Query(() => [OrderHeader])
+  async getOrders(@CurrentUser() @ValidManagerPayload() user: JwtPayload) {
     return this.orderHeaderService.getOrders(user);
   }
 
   @UseGuards(GqlAuthGuard)
-  @Mutation(() => OrderHeader, { name: 'createOrder' })
+  @Query(() => [OrderHeader])
+  async getMyOrders(@CurrentUser() @ValidCustomerPayload() user: JwtPayload) {
+    return this.orderHeaderService.getMyOrders(user);
+  }
+
+  @UseGuards(GqlAuthGuard)
+  @Mutation(() => OrderHeader)
   async createOrder(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() @ValidCustomerPayload() user: JwtPayload,
     @Args('notes', { nullable: true }) notes?: string,
   ) {
     return this.orderHeaderService.createOrder(user, notes);
   }
 
   @UseGuards(GqlAuthGuard)
-  @Mutation(() => OrderHeader, { name: 'updateOrder' })
+  @Mutation(() => OrderHeader)
   async updateOrder(
     @CurrentUser() user: JwtPayload,
     @Args('orderId') orderId: string,
@@ -37,7 +44,7 @@ export class OrderHeaderResolver {
   }
 
   @UseGuards(GqlAuthGuard)
-  @Mutation(() => OrderHeader, { name: 'anulateOrder' })
+  @Mutation(() => OrderHeader)
   async anulateOrder(
     @CurrentUser() user: JwtPayload,
     @Args('orderId') orderId: string,

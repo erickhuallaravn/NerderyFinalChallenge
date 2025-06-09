@@ -13,6 +13,7 @@ import { ShopCartsModule } from './shop-carts/shop-carts.module';
 import { PromotionalDiscountsModule } from './discounts/promotional-discounts.module';
 import { OrderModule } from './orders/orders.module';
 import { StripeModule } from './stripe/stripe.module';
+import { SeederModule } from './seeds/seeder.module';
 
 void ConfigModule.forRoot({
   isGlobal: true,
@@ -36,6 +37,7 @@ void ConfigModule.forRoot({
     PromotionalDiscountsModule,
     OrderModule,
     StripeModule,
+    SeederModule
   ],
   controllers: [],
   providers: [],

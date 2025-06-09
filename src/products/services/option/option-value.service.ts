@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { OptionValue } from 'generated/prisma';
+import { OptionValue, RowStatus } from 'generated/prisma';
 import { OptionService } from './option.service';
 
 @Injectable()
@@ -31,7 +31,7 @@ export class OptionValueService {
           code: valueCode,
           name: valueCode,
           optionId: option.id,
-          status: 'ACTIVE',
+          status: RowStatus.ACTIVE,
           statusUpdatedAt: new Date(),
         },
       });

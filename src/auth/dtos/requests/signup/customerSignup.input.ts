@@ -1,7 +1,7 @@
 import { Field, InputType } from '@nestjs/graphql';
 
 @InputType()
-export class SignUpInput {
+export class CustomerSignUpInput {
   @Field()
   address?: string;
 
@@ -12,14 +12,14 @@ export class SignUpInput {
   email: string;
 
   @Field()
-  first_name: string;
+  firstName: string;
 
   @Field()
-  last_name: string;
+  lastName: string;
 
   @Field()
   password: string;
 
   @Field()
-  phone_number?: string;
+  phoneNumber?: string;
 }

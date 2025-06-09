@@ -2,6 +2,7 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreatePromotionalDiscountInput } from '../dtos/request/create-promotional-discount.input';
 import { UserType } from 'src/shared/enums';
+import { RowStatus } from 'generated/prisma';
 
 @Injectable()
 export class PromotionalDiscountService {
@@ -22,7 +23,7 @@ export class PromotionalDiscountService {
       data: {
         ...input,
         validSince: new Date(),
-        status: 'ACTIVE',
+        status: RowStatus.ACTIVE,
         statusUpdatedAt: now,
         createdAt: now,
       },

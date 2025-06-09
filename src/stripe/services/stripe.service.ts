@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import Stripe from 'stripe';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { JwtPayload } from 'src/auth/types/jwt-payload.type';
+import { OrderHeaderStatus } from 'generated/prisma';
 
 @Injectable()
 export class StripeService {
@@ -29,7 +30,7 @@ export class StripeService {
       where: {
         statusHistory: {
           some: {
-            status: 'PENDING_PAYMENT',
+            status: OrderHeaderStatus.PENDING_PAYMENT,
           },
         },
       },

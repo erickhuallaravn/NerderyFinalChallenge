@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateProductVariationInput } from '../../dtos/requests/product-variation/create-product-variation.input';
 import { UpdateProductVariationInput } from '../../dtos/requests/product-variation/update-product-variation.input';
-import { ProductVariation } from 'generated/prisma';
+import { ProductStatus, ProductVariation, RowStatus } from 'generated/prisma';
 import { FeatureService } from '../feature/feature.service';
 
 @Injectable()
@@ -22,7 +22,7 @@ export class ProductVariationService {
         price: input.price,
         currencyCode: input.currencyCode,
         availableStock: input.availableStock,
-        status: 'AVAILABLE',
+        status: ProductStatus.AVAILABLE,
         statusUpdatedAt: new Date(),
       },
     });
@@ -94,7 +94,7 @@ export class ProductVariationService {
     await this.prisma.productVariation.update({
       where: { id: productVariationId },
       data: {
-        status: 'DELETED',
+        status: RowStatus.DELETED,
         statusUpdatedAt: new Date(),
       },
     });

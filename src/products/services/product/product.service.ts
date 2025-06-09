@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateProductInput } from '../../dtos/requests/product/create-product.input';
 import { UpdateProductInput } from '../../dtos/requests/product/update-product.input';
-import { Product } from 'generated/prisma';
+import { Product, ProductStatus, RowStatus } from 'generated/prisma';
 import { SearchPaginateProductInput } from 'src/products/dtos/requests/product/search-paginate-product.input';
 
 @Injectable()
@@ -14,7 +14,7 @@ export class ProductService {
 
     return this.prisma.product.findMany({
       where: {
-        status: 'AVAILABLE',
+        status: ProductStatus.AVAILABLE,
         OR: search
           ? [
               { name: { contains: search, mode: 'insensitive' } },
@@ -48,11 +48,11 @@ export class ProductService {
       },
       include: {
         variations: {
-          where: { status: 'AVAILABLE' },
+          where: { status: ProductStatus.AVAILABLE },
           include: {
             productFiles: true,
             features: {
-              where: { status: 'ACTIVE' },
+              where: { status: RowStatus.ACTIVE },
               include: {
                 optionValue: {
                   include: {
@@ -86,7 +86,7 @@ export class ProductService {
       data: {
         name: newProductInfo.name,
         description: newProductInfo.description ?? '',
-        status: 'AVAILABLE',
+        status: ProductStatus.AVAILABLE,
         statusUpdatedAt: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -124,7 +124,7 @@ export class ProductService {
     await this.prisma.product.update({
       where: { id: product_id },
       data: {
-        status: 'DELETED',
+        status: RowStatus.DELETED,
         statusUpdatedAt: new Date(),
       },
     });
