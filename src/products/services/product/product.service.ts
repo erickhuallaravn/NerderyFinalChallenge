@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateProductInput } from '../../dtos/requests/product/create-product.input';
 import { UpdateProductInput } from '../../dtos/requests/product/update-product.input';
-import { Product, ProductStatus, RowStatus } from 'generated/prisma';
+import { Product, ProductStatus, RowStatus } from '@prisma/client';
 import { SearchPaginateProductInput } from 'src/products/dtos/requests/product/search-paginate-product.input';
 
 @Injectable()

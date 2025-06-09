@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { OptionValueService } from '../option/option-value.service';
-import { Feature, RowStatus } from 'generated/prisma';
+import { OptionValueService } from './option-value.service';
+import { Feature, RowStatus } from '@prisma/client';
 import { AddVariationFeatureInput } from '../../dtos/requests/variation/add-variation-feature.input';
 
 @Injectable()

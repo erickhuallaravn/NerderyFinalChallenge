@@ -5,8 +5,9 @@ import { CreatePromotionalDiscountInput } from '../dtos/request/create-promotion
 import { PromotionalDiscount } from '../models/promotional-discount.model';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { JwtPayload } from 'src/auth/types/jwt-payload.type';
-import { PromotionalDiscount as PromotionalDiscountEntity } from 'generated/prisma';
+import { PromotionalDiscount as PromotionalDiscountEntity } from '@prisma/client';
 import { GqlAuthGuard } from 'src/auth/guards/gql-auth.guard';
+import { ValidManagerPayload } from 'src/auth/decorators/valid-auth-payload.decorator';
 
 @Resolver(() => PromotionalDiscount)
 @UseGuards(GqlAuthGuard)
@@ -16,13 +17,9 @@ export class PromotionalDiscountsResolver {
   @Mutation(() => PromotionalDiscount)
   createPromotionalDiscount(
     @Args('input') input: CreatePromotionalDiscountInput,
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() @ValidManagerPayload() authPayload: JwtPayload,
   ): Promise<PromotionalDiscountEntity> {
-    console.log(user);
-    return this.promotionalDiscountService.createPromotion(
-      input,
-      user.userType,
-    );
+    return this.promotionalDiscountService.createPromotion(authPayload, input);
   }
 
   @Query(() => [PromotionalDiscount])

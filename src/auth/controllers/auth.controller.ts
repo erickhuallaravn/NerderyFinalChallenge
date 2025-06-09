@@ -1,10 +1,4 @@
-import {
-  Controller,
-  Post,
-  Body,
-  Patch,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Post, Body, Patch, UseGuards } from '@nestjs/common';
 import { AuthService } from '../services/auth.service';
 import { LogInInput } from '../dtos/requests/login/login.input';
 import { CustomerSignUpInput } from '../dtos/requests/signup/customerSignup.input';
@@ -13,6 +7,8 @@ import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { JwtPayload } from 'src/auth/types/jwt-payload.type';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { ManagerSignUpInput } from '../dtos/requests/signup/managerSignup.input';
+import { ValidManagerPayload } from '../decorators/valid-auth-payload.decorator';
+import { ResetPasswordInput } from '../dtos/requests/resetPassword/resetPassword.input';
 
 @Controller('auth')
 export class AuthController {
@@ -21,42 +17,49 @@ export class AuthController {
   @Post('sign-in')
   async signIn(
     @Body() credentials: LogInInput,
-  ): Promise<AuthTokenResponseOutput> {
+  ): Promise<{ data: AuthTokenResponseOutput }> {
     const token = await this.authService.login(credentials);
-    return { accessToken: token };
+    return { data: { accessToken: token } };
   }
 
-  @Post('sign-up')
-  async signUp(@Body() input: CustomerSignUpInput): Promise<AuthTokenResponseOutput> {
+  @Post('customer/ign-up')
+  async signUp(
+    @Body() input: CustomerSignUpInput,
+  ): Promise<{ data: AuthTokenResponseOutput }> {
     const token = await this.authService.registerCustomer(input);
-    return { accessToken: token };
+    return { data: { accessToken: token } };
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('sign-out')
-  async signOut(@CurrentUser() req: JwtPayload): Promise<{ message: string }> {
+  async signOut(
+    @CurrentUser() req: JwtPayload,
+  ): Promise<{ data: { signedOut: boolean } }> {
     await this.authService.logout(req.sub);
-    return { message: 'Logged out succesfully' };
+    return { data: { signedOut: true } };
   }
 
   @UseGuards(JwtAuthGuard)
-  @Post('sign-up/manager')
-  async managerSignUp(@CurrentUser() credentials: JwtPayload, @Body() input: ManagerSignUpInput): Promise<AuthTokenResponseOutput> {
-    const token = await this.authService.registerManager(input, credentials);
-    return { accessToken: token };
+  @Post('manager/sign-up')
+  async managerSignUp(
+    @CurrentUser() @ValidManagerPayload() authPayload: JwtPayload,
+    @Body() input: ManagerSignUpInput,
+  ): Promise<{ data: AuthTokenResponseOutput }> {
+    const token = await this.authService.registerManager(input, authPayload);
+    return { data: { accessToken: token } };
   }
 
   @Post('send-recover-email')
-  async sendRecoverEmail(@Body('email') email: string) {
+  async sendRecoverEmail(
+    @Body('email') email: string,
+  ): Promise<{ data: { codeSentTo: string } }> {
     await this.authService.sendRecoverEmail(email);
-    return {
-      message: 'Email sent to user only if his registered email exists',
-    };
+    return { data: { codeSentTo: email } };
   }
 
-  @Patch('update-password')
-  async updatePassword(@Body() data: { token: string; new_password: string }) {
-    await this.authService.updatePassword(data.token, data.new_password);
+  @Patch('reset-password')
+  async updatePassword(@Body() input: ResetPasswordInput) {
+    await this.authService.updatePassword(input);
     return { message: 'Password updated successfully' };
   }
 }

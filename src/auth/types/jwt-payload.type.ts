@@ -6,3 +6,9 @@ export type JwtPayload = {
   userType: UserType;
   tokenVersion: string;
 };
+
+declare module 'express-serve-static-core' {
+  interface Request {
+    authPayload?: JwtPayload;
+  }
+}

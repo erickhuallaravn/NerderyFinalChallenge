@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { JwtPayload } from '../types/jwt-payload.type';
-import { UserType } from 'generated/prisma';
+import { UserType } from '@prisma/client';
 
 export const ValidCustomerPayload = createParamDecorator(
   (data: unknown, ctx: ExecutionContext): JwtPayload => {

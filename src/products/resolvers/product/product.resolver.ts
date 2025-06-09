@@ -2,7 +2,7 @@ import { Resolver, Query, Mutation, Args, ID } from '@nestjs/graphql';
 import { ProductService } from '../../services/product/product.service';
 import { CreateProductInput } from '../../dtos/requests/product/create-product.input';
 import { UpdateProductInput } from '../../dtos/requests/product/update-product.input';
-import { Product as ProductEntity } from 'generated/prisma';
+import { Product as ProductEntity } from '@prisma/client';
 import { Product } from '../../models/product/product.model';
 import { SearchPaginateProductInput } from 'src/products/dtos/requests/product/search-paginate-product.input';
 

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Role, User } from 'generated/prisma';
+import { Role } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UserService } from 'src/user/services/user.service';
 import { CustomerService } from '../../customer/services/customer.service';
@@ -36,7 +36,7 @@ export class UserSeeder {
       email: 'default_manager@test.com',
       password: managerPassword,
     };
-    
+
     const customerUser =
       await this.customerService.create(customerRegisterInfo);
     const managerUser =

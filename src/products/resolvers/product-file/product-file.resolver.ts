@@ -1,7 +1,7 @@
 import { Resolver, Mutation, Args } from '@nestjs/graphql';
 import { ProductFileService } from '../../services/product-file/product-file.service';
 import { UploadProductFileInput } from '../../dtos/requests/product-file/upload-product-file.input';
-import { ProductFile as ProductFileEntity } from 'generated/prisma';
+import { ProductFile as ProductFileEntity } from '@prisma/client';
 import { ProductFile } from '../../models/product-file/product-file.model';
 
 @Resolver(() => ProductFile)

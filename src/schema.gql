@@ -206,8 +206,9 @@ type PromotionalDiscount {
 }
 
 type Query {
-  getCartItems: [ShopCartItem!]!
   getItemsByOrder(itemId: String!): OrderItem!
+  getMyCartItems: [ShopCartItem!]!
+  getMyOrders: [OrderHeader!]!
   getOrderItem(itemId: String!): OrderItem!
   getOrders: [OrderHeader!]!
   getProductById(product_id: ID!): Product!
@@ -250,6 +251,7 @@ input UpdateOrderHeaderInput {
 }
 
 input UpdateOrderItemInput {
+  currencyCode: String
   id: String!
   itemDiscounts: [CreateOrderItemDiscountInput!]
   orderHeaderId: String

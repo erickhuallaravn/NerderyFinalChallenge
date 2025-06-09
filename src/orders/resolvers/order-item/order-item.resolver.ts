@@ -37,7 +37,7 @@ export class OrderItemResolver {
     @Args('itemId') itemId: string,
     @Args('input') input: UpdateOrderItemInput,
   ) {
-    return this.orderItemService.updateItem(user, itemId, input);
+    return await this.orderItemService.createOrUpdateItem(user, itemId, input);
   }
 
   @UseGuards(GqlAuthGuard)

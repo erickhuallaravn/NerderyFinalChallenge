@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Role, RowStatus, User, UserType } from 'generated/prisma';
+import { Role, RowStatus, User, UserType } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { LogInInput } from '../../auth/dtos/requests/login/login.input';
 import { CustomerSignUpInput } from '../../auth/dtos/requests/signup/customerSignup.input';

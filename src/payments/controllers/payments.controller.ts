@@ -11,22 +11,22 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
-import { StripeService } from '../../stripe/services/stripe.service';
-import Stripe from 'stripe';
 import { JwtPayload } from 'src/auth/types/jwt-payload.type';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { PaymentsService } from '../services/payments.service';
+import Stripe from 'stripe';
+import { ValidCustomerPayload } from 'src/auth/decorators/valid-auth-payload.decorator';
 
 @Controller('payment')
 export class PaymentController {
-  constructor(private readonly stripeService: StripeService) {}
+  constructor(private readonly paymentsService: PaymentsService) {}
 
-  // Protegido con JWT
   @UseGuards(JwtAuthGuard)
   @Post('checkout')
   async createCheckoutSession(
-    @CurrentUser() req: JwtPayload,
+    @CurrentUser() @ValidCustomerPayload() authPayload: JwtPayload,
   ): Promise<{ url: string }> {
-    const url: string = await this.stripeService.createCheckoutSession(req);
+    const url = await this.paymentsService.createCheckoutSession(authPayload);
     return { url };
   }
 
@@ -37,9 +37,10 @@ export class PaymentController {
     }
 
     const session: Stripe.Checkout.Session =
-      await this.stripeService.retrieveSession(sessionId);
+      await this.paymentsService.retrieveSession(sessionId);
+
     return {
-      message: 'Succesful payment',
+      message: 'Successful payment',
       sessionId,
       email: session.customer_email,
       orderId: session.metadata?.orderId,
@@ -58,20 +59,36 @@ export class PaymentController {
   ) {
     const rawBody = req.rawBody;
     if (!rawBody) {
-      throw new BadRequestException(
-        'The request body was not received',
-      );
+      throw new BadRequestException('The request body was not received');
     }
 
-    const event = this.stripeService.handleWebhook(rawBody, sig);
+    const event = this.paymentsService.handleWebhook(rawBody, sig);
 
     switch (event.type) {
-      case 'checkout.session.completed':
+      case 'checkout.session.completed': {
         const session = event.data.object;
-        console.log(`Checkout confirmed for: ${session.metadata?.orderId}`);
+
+        const orderId = session.metadata?.orderId;
+        if (!orderId) {
+          console.warn('No orderId found in session metadata');
+          break;
+        }
+
+        await this.paymentsService.markOrderAsPaid(orderId);
+        console.log(`Checkout confirmed and marked as paid: ${orderId}`);
         break;
+      }
+
+      case 'checkout.session.expired': {
+        const session = event.data.object;
+        const orderId = session.metadata?.orderId;
+        console.warn(`Payment session expired for order: ${orderId}`);
+        // Aquí podrías marcar el pedido como cancelado/expirado
+        break;
+      }
+
       default:
-        console.log(`Ignored event: ${event.type}`);
+        console.log(`Ignored Stripe event: ${event.type}`);
     }
 
     return { received: true };

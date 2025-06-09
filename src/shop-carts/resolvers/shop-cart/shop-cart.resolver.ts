@@ -1,7 +1,7 @@
 import { UseGuards } from '@nestjs/common';
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { ShopCartService } from '../../services/shop-cart/shop-cart.service';
-import { ShopCartItem as ShopCartItemEntity } from 'generated/prisma';
+import { ShopCartItem as ShopCartItemEntity } from '@prisma/client';
 import { AddToShopCartInput } from '../../dtos/requests/shop-cart/add-to-shop-cart.input';
 import { ShopCartItem } from '../../models/shop-cart/shop-cart-item.model';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
@@ -33,7 +33,9 @@ export class ShopCartResolver {
 
   @UseGuards(GqlAuthGuard)
   @Mutation(() => Boolean)
-  async emptyCart(@CurrentUser() @ValidCustomerPayload() authPayload: JwtPayload): Promise<boolean> {
+  async emptyCart(
+    @CurrentUser() @ValidCustomerPayload() authPayload: JwtPayload,
+  ): Promise<boolean> {
     return this.shopCartService.emptyCart(authPayload);
   }
 }

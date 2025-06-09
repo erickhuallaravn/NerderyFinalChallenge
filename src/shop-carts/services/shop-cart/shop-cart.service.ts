@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AddToShopCartInput } from '../../dtos/requests/shop-cart/add-to-shop-cart.input';
 import { JwtPayload } from 'src/auth/types/jwt-payload.type';
-import { RowStatus } from 'generated/prisma';
+import { RowStatus } from '@prisma/client';
 
 @Injectable()
 export class ShopCartService {
@@ -10,18 +10,20 @@ export class ShopCartService {
 
   async getOrCreateHeader(authPayload: JwtPayload) {
     const customerId = authPayload.customerId!;
-    let header = await this.prisma.shopCartHeader.findFirst({
-      where: { customerId },
-    });
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 1);
 
-    if (!header) {
-      header = await this.prisma.shopCartHeader.create({
-        data: {
-          customerId,
-          name: 'default',
-        },
-      });
-    }
+    const header = await this.prisma.shopCartHeader.upsert({
+      where: { customerId },
+      create: {
+        name: 'default',
+        dueDate,
+        total: 0.0,
+        currencyCode: 'PEN',
+        customerId,
+      },
+      update: {},
+    });
 
     return header;
   }
@@ -44,8 +46,9 @@ export class ShopCartService {
     const { productVariationId, quantity } = input;
     const productInfo = await this.prisma.productVariation.findUnique({
       where: { id: productVariationId },
-      select: { name: true, price: true },
+      select: { name: true, price: true, currencyCode: true },
     });
+
     if (!productInfo)
       throw new NotFoundException('The product specified does not exist.');
 
@@ -66,11 +69,23 @@ export class ShopCartService {
       },
     });
 
+    const getDiscountPercentage = (quantity: number): number => {
+      const valid = promos.find(
+        (p) => quantity >= p.requiredAmount && p.discountPercentage != null,
+      );
+      return valid?.discountPercentage?.toNumber() ?? 0;
+    };
+
+    const discountPct = getDiscountPercentage(quantity);
+    const price = Number(productInfo.price);
+    const discountedSubtotal = quantity * price * (1 - discountPct / 100);
+
     if (existing) {
       await this.prisma.shopCartItem.update({
         where: { id: existing.id },
         data: {
           quantity,
+          subtotal: discountedSubtotal,
           updatedAt: new Date(),
         },
       });
@@ -110,6 +125,7 @@ export class ShopCartService {
         }
       }
 
+      await this.recalculateHeaderTotal(header.id);
       return true;
     }
 
@@ -119,7 +135,8 @@ export class ShopCartService {
         productVariationId,
         productName: productInfo.name,
         quantity,
-        subtotal: quantity * Number(productInfo.price),
+        subtotal: discountedSubtotal,
+        currencyCode: productInfo.currencyCode,
       },
     });
 
@@ -139,7 +156,24 @@ export class ShopCartService {
       }
     }
 
+    await this.recalculateHeaderTotal(header.id);
     return true;
+  }
+
+  async recalculateHeaderTotal(headerId: string) {
+    const items = await this.prisma.shopCartItem.findMany({
+      where: { shoppingCartHeaderId: headerId },
+    });
+
+    const total = items.reduce((sum, item) => sum + Number(item.subtotal), 0);
+
+    await this.prisma.shopCartHeader.update({
+      where: { id: headerId },
+      data: {
+        total,
+        updatedAt: new Date(),
+      },
+    });
   }
 
   async emptyCart(authPayload: JwtPayload) {
@@ -147,6 +181,15 @@ export class ShopCartService {
     await this.prisma.shopCartItem.deleteMany({
       where: { shoppingCartHeaderId: header.id },
     });
+
+    await this.prisma.shopCartHeader.update({
+      where: { id: header.id },
+      data: {
+        total: 0,
+        updatedAt: new Date(),
+      },
+    });
+
     return true;
   }
 }

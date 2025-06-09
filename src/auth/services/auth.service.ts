@@ -8,8 +8,9 @@ import { CustomerSignUpInput } from '../dtos/requests/signup/customerSignup.inpu
 import { MailerService } from '@nestjs-modules/mailer';
 import { v4 as uuidv4 } from 'uuid';
 import { JwtPayload } from '../types/jwt-payload.type';
-import { User, UserType } from 'generated/prisma';
+import { User, UserType } from '@prisma/client';
 import { ManagerSignUpInput } from '../dtos/requests/signup/managerSignup.input';
+import { ResetPasswordInput } from '../dtos/requests/resetPassword/resetPassword.input';
 
 @Injectable()
 export class AuthService {
@@ -51,8 +52,7 @@ export class AuthService {
   }
 
   async registerCustomer(customerInfo: CustomerSignUpInput): Promise<string> {
-    const customer =
-      await this.customerService.create(customerInfo);
+    const customer = await this.customerService.create(customerInfo);
     await this.prisma.user.findUniqueOrThrow({
       where: { id: customer.userId },
       include: {
@@ -77,9 +77,14 @@ export class AuthService {
     return this.jwtService.signAsync(payload);
   }
 
-  async registerManager(managerInfo: ManagerSignUpInput, credentials: JwtPayload): Promise<string> {
-    if (credentials.userType !== UserType.MANAGER){
-      throw new UnauthorizedException('The token provided does not belong to a manager session.');
+  async registerManager(
+    managerInfo: ManagerSignUpInput,
+    credentials: JwtPayload,
+  ): Promise<string> {
+    if (credentials.userType !== UserType.MANAGER) {
+      throw new UnauthorizedException(
+        'The token provided does not belong to a manager session.',
+      );
     }
 
     const manager = await this.userService.createManager(managerInfo);
@@ -116,13 +121,13 @@ export class AuthService {
     });
   }
 
-  async updatePassword(token: string, newPassword: string): Promise<boolean> {
+  async updatePassword(input: ResetPasswordInput): Promise<boolean> {
     let payload: JwtPayload;
     try {
-      payload = await this.jwtService.verifyAsync(token);
+      payload = await this.jwtService.verifyAsync(input.token);
     } catch {
       throw new UnauthorizedException('Invalid or expired token.');
     }
-    return await this.userService.updatePassword(newPassword, payload);
+    return await this.userService.updatePassword(input.newPassword, payload);
   }
 }

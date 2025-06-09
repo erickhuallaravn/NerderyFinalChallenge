@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CustomerSignUpInput } from '../../auth/dtos/requests/signup/customerSignup.input';
 import { UserService } from 'src/user/services/user.service';
-import { Prisma } from 'generated/prisma';
+import { Prisma } from '@prisma/client';
 
 const customerInclude = {
   user: true,

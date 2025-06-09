@@ -2,7 +2,7 @@ import { Resolver, Mutation, Args, ID } from '@nestjs/graphql';
 import { ProductVariationService } from '../../services/product-variation/product-variation.service';
 import { CreateProductVariationInput } from '../../dtos/requests/product-variation/create-product-variation.input';
 import { UpdateProductVariationInput } from '../../dtos/requests/product-variation/update-product-variation.input';
-import { ProductVariation as ProductVariationEntity } from 'generated/prisma';
+import { ProductVariation as ProductVariationEntity } from '@prisma/client';
 import { ProductVariation } from '../../models/product-variation/product-variation.model';
 
 @Resolver(() => ProductVariation)

@@ -7,7 +7,7 @@ export const CurrentUser = createParamDecorator(
   (data: unknown, context: ExecutionContext): JwtPayload => {
     if (context.getType() === 'http') {
       const request = context.switchToHttp().getRequest();
-      return request.user;
+      return request.authPayload!;
     }
     const ctx = GqlExecutionContext.create(context);
     const gqlCtx = ctx.getContext<GqlContext>();

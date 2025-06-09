@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateProductVariationInput } from '../../dtos/requests/product-variation/create-product-variation.input';
 import { UpdateProductVariationInput } from '../../dtos/requests/product-variation/update-product-variation.input';
-import { ProductStatus, ProductVariation, RowStatus } from 'generated/prisma';
+import { ProductStatus, ProductVariation, RowStatus } from '@prisma/client';
 import { FeatureService } from '../feature/feature.service';
 
 @Injectable()
