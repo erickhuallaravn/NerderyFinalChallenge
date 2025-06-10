@@ -51,7 +51,7 @@ export class AuthController {
     return { data: { accessToken: token } };
   }
 
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle({ default: { limit: 2, ttl: 60000 } })
   @Post('send-recover-email')
   async sendRecoverEmail(
     @Body('email') email: string,

@@ -3,7 +3,8 @@ import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ConfigModule } from '@nestjs/config';
 import { join } from 'path';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 
 import { AuthModule } from './auth/auth.module';
 import { ProductModule } from './products/products.module';
@@ -21,7 +22,12 @@ import { envSchema } from './config/env.validation';
 @Module({
   imports: [
     ThrottlerModule.forRoot({
-      throttlers: [],
+      throttlers: [
+        {
+          ttl: 10000,
+          limit: 10,
+        },
+      ],
     }),
 
     ConfigModule.forRoot({
@@ -54,6 +60,11 @@ import { envSchema } from './config/env.validation';
     SeederModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}

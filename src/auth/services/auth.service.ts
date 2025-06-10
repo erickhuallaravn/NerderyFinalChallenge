@@ -110,6 +110,7 @@ export class AuthService {
     await this.mailerService.sendMail({
       to: user.email,
       subject: 'Welcome!',
+      template: 'welcome',
       context: { token: token },
       text: `This is your recuperation token: ${token}`,
     });
