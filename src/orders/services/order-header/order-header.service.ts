@@ -12,11 +12,8 @@ import { OrderHeaderStatus, RowStatus, UserType } from '@prisma/client';
 export class OrderHeaderService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getOrders(authPayload: JwtPayload) {
+  async getOrders() {
     return this.prisma.orderHeader.findMany({
-      where: {
-        customerId: authPayload.customerId!,
-      },
       include: {
         orderItems: {
           include: {

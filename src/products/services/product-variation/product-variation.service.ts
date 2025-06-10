@@ -15,64 +15,64 @@ export class ProductVariationService {
   async createProductVariation(
     input: CreateProductVariationInput,
   ): Promise<ProductVariation> {
-    const newVariation = await this.prisma.productVariation.create({
-      data: {
-        productId: input.productId,
-        name: input.name,
-        price: input.price,
-        currencyCode: input.currencyCode,
-        availableStock: input.availableStock,
-        status: ProductStatus.AVAILABLE,
-        statusUpdatedAt: new Date(),
-      },
-    });
+    return this.prisma.$transaction(async (tx) => {
+      const newVariation = await tx.productVariation.create({
+        data: {
+          productId: input.productId,
+          name: input.name,
+          price: input.price,
+          currencyCode: input.currencyCode,
+          availableStock: input.availableStock,
+          status: ProductStatus.AVAILABLE,
+          statusUpdatedAt: new Date(),
+        },
+      });
 
-    if (input.features && input.features.length > 0) {
-      await Promise.all(
-        input.features.map(async (char) => {
-          await this.featureService.create({
-            ...char,
+      if (input.features?.length) {
+        for (const feature of input.features) {
+          await this.featureService.createWithTx(tx, {
+            ...feature,
             productVariationId: newVariation.id,
           });
-        }),
-      );
-    }
+        }
+      }
 
-    return newVariation;
+      return newVariation;
+    });
   }
 
   async updateProductVariation(
     input: UpdateProductVariationInput,
   ): Promise<ProductVariation> {
-    const existing = await this.prisma.productVariation.findUniqueOrThrow({
-      where: { id: input.productVariationId },
-    });
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.productVariation.findUniqueOrThrow({
+        where: { id: input.productVariationId },
+      });
 
-    const updatedVariation = await this.prisma.productVariation.update({
-      where: { id: input.productVariationId },
-      data: {
-        name: input.name ?? existing.name,
-        price: input.price ?? existing.price,
-        currencyCode: input.currencyCode ?? existing.currencyCode,
-        availableStock: input.availableStock ?? existing.availableStock,
-        status: input.status ?? existing.status,
-        updatedAt: new Date(),
-        statusUpdatedAt: new Date(),
-      },
-    });
+      const updatedVariation = await tx.productVariation.update({
+        where: { id: input.productVariationId },
+        data: {
+          name: input.name ?? existing.name,
+          price: input.price ?? existing.price,
+          currencyCode: input.currencyCode ?? existing.currencyCode,
+          availableStock: input.availableStock ?? existing.availableStock,
+          status: input.status ?? existing.status,
+          updatedAt: new Date(),
+          statusUpdatedAt: new Date(),
+        },
+      });
 
-    if (input.features && input.features.length > 0) {
-      await Promise.all(
-        input.features.map(async (char) => {
-          await this.featureService.create({
-            ...char,
+      if (input.features?.length) {
+        for (const feature of input.features) {
+          await this.featureService.createWithTx(tx, {
+            ...feature,
             productVariationId: input.productVariationId,
           });
-        }),
-      );
-    }
+        }
+      }
 
-    return updatedVariation;
+      return updatedVariation;
+    });
   }
 
   async deleteProductVariation(productVariationId: string): Promise<boolean> {
@@ -87,6 +87,7 @@ export class ProductVariationService {
         statusUpdatedAt: new Date(),
       },
     });
+
     return true;
   }
 }

@@ -1,11 +1,15 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
-import { UseGuards } from '@nestjs/common';
-import { GqlAuthGuard } from 'src/auth/guards/gql-auth.guard';
-import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
-import { JwtPayload } from 'src/auth/types/jwt-payload.type';
+import { OrderHeader as OrderHeaderEntity } from '@prisma/client';
+
 import { OrderHeaderService } from '../../services/order-header/order-header.service';
 import { OrderHeader } from '../../models/order-header.model';
 import { UpdateOrderHeaderInput } from '../../dtos/requests/order-header/update-order-header.input';
+
+import { UseGuards } from '@nestjs/common';
+import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
+import { GqlAuthGuard } from 'src/auth/guards/gql-auth.guard';
+import { JwtPayload } from 'src/auth/types/jwt-payload.type';
 import {
   ValidCustomerPayload,
   ValidManagerPayload,
@@ -17,14 +21,18 @@ export class OrderHeaderResolver {
 
   @UseGuards(GqlAuthGuard)
   @Query(() => [OrderHeader])
-  async getOrders(@CurrentUser() @ValidManagerPayload() user: JwtPayload) {
-    return this.orderHeaderService.getOrders(user);
+  async getOrders(
+    @CurrentUser() @ValidManagerPayload() authPayload: JwtPayload,
+  ): Promise<OrderHeaderEntity[]> {
+    return this.orderHeaderService.getOrders();
   }
 
   @UseGuards(GqlAuthGuard)
   @Query(() => [OrderHeader])
-  async getMyOrders(@CurrentUser() @ValidCustomerPayload() user: JwtPayload) {
-    return this.orderHeaderService.getMyOrders(user);
+  async getMyOrders(
+    @CurrentUser() @ValidCustomerPayload() authPayload: JwtPayload,
+  ): Promise<OrderHeaderEntity[]> {
+    return this.orderHeaderService.getMyOrders(authPayload);
   }
 
   @UseGuards(GqlAuthGuard)
@@ -32,7 +40,7 @@ export class OrderHeaderResolver {
   async createOrder(
     @CurrentUser() @ValidCustomerPayload() user: JwtPayload,
     @Args('notes', { nullable: true }) notes?: string,
-  ) {
+  ): Promise<OrderHeaderEntity> {
     return this.orderHeaderService.createOrder(user, notes);
   }
 
@@ -42,7 +50,7 @@ export class OrderHeaderResolver {
     @CurrentUser() user: JwtPayload,
     @Args('orderId') orderId: string,
     @Args('input') input: UpdateOrderHeaderInput,
-  ) {
+  ): Promise<OrderHeaderEntity> {
     return this.orderHeaderService.updateOrder(user, orderId, input);
   }
 
@@ -51,7 +59,7 @@ export class OrderHeaderResolver {
   async anulateOrder(
     @CurrentUser() user: JwtPayload,
     @Args('orderId') orderId: string,
-  ) {
+  ): Promise<OrderHeaderEntity> {
     return this.orderHeaderService.anulateOrder(user, orderId);
   }
 }
