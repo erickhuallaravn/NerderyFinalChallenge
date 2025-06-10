@@ -1,19 +1,20 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreatePromotionalDiscountInput } from '../dtos/request/create-promotional-discount.input';
-import { UserType } from 'src/shared/enums';
+import { RowStatus, UserType } from '@prisma/client';
+import { JwtPayload } from 'src/auth/types/jwt-payload.type';
 
 @Injectable()
 export class PromotionalDiscountService {
   constructor(private prisma: PrismaService) {}
 
   async createPromotion(
+    authPayload: JwtPayload,
     input: CreatePromotionalDiscountInput,
-    userType: UserType,
   ) {
-    if (userType !== 'CUSTOMER') {
+    if (authPayload.userType !== UserType.MANAGER) {
       throw new ForbiddenException(
-        `User type ${userType} can not create promotional discount`,
+        `User type ${authPayload.userType} can not create promotional discount`,
       );
     }
 
@@ -39,8 +40,7 @@ export class PromotionalDiscountService {
         validUntil,
         availableStock: availableStock,
         validSince: new Date(),
-        createdAt: now,
-        status: 'ACTIVE',
+        status: RowStatus.ACTIVE,
         statusUpdatedAt: now,
       },
     });

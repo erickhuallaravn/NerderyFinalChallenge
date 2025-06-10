@@ -7,6 +7,7 @@ import {
   IsDecimal,
   IsOptional,
 } from 'class-validator';
+import { CurrencyCode } from 'src/shared/enums';
 
 @InputType()
 export class CreateOrderItemInput {
@@ -25,6 +26,9 @@ export class CreateOrderItemInput {
   @Field()
   @IsDecimal()
   subtotal: number;
+
+  @Field()
+  currencyCode: CurrencyCode;
 
   @Field()
   @IsString()

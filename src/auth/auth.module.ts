@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { MailerModule } from '@nestjs-modules/mailer';
+import { join } from 'path';
 
 import { AuthService } from './services/auth.service';
 import { AuthController } from './controllers/auth.controller';
@@ -37,7 +38,7 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handleba
         from: '"No Reply" <noreply@example.com>',
       },
       template: {
-        dir: __dirname + '/templates',
+        dir: join(__dirname, '..', '..', 'templates'),
         adapter: new HandlebarsAdapter(),
         options: {
           strict: true,

@@ -2,7 +2,7 @@ import { Resolver, Mutation, Args, ID } from '@nestjs/graphql';
 import { Feature } from '../../models/feature/feature.model';
 import { FeatureService } from '../../services/feature/feature.service';
 import { AddVariationFeatureInput } from '../../dtos/requests/variation/add-variation-feature.input';
-import { Feature as FeatureEntity } from 'generated/prisma';
+import { Feature as FeatureEntity } from '@prisma/client';
 
 @Resolver(() => Feature)
 @Resolver(() => Feature)

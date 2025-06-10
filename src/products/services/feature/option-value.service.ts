@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { OptionValue } from 'generated/prisma';
+import { OptionValue, RowStatus } from '@prisma/client';
 import { OptionService } from './option.service';
 
 @Injectable()
@@ -16,27 +16,21 @@ export class OptionValueService {
   ): Promise<OptionValue> {
     const option = await this.optionService.findOrCreateOption(optionCode);
 
-    let value = await this.prisma.optionValue.findUnique({
+    return await this.prisma.optionValue.upsert({
       where: {
         optionId_code: {
           optionId: option.id,
           code: valueCode,
         },
       },
+      create: {
+        code: valueCode,
+        name: valueCode,
+        optionId: option.id,
+        status: RowStatus.ACTIVE,
+        statusUpdatedAt: new Date(),
+      },
+      update: {},
     });
-
-    if (!value) {
-      value = await this.prisma.optionValue.create({
-        data: {
-          code: valueCode,
-          name: valueCode,
-          optionId: option.id,
-          status: 'ACTIVE',
-          statusUpdatedAt: new Date(),
-        },
-      });
-    }
-
-    return value;
   }
 }

@@ -1,11 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
-import {
-  Injectable,
-  UnauthorizedException,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
@@ -25,9 +21,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: JwtPayload): Promise<JwtPayload> {
-    const user = await this.prisma.user.findUnique({
-      where: { id: payload.sub },
+  async validate(authPayload: JwtPayload): Promise<JwtPayload> {
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: authPayload.sub },
       include: {
         userRoles: {
           select: {
@@ -41,17 +37,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         },
       },
     });
-    if (!user || user.tokenVersion !== payload.tokenVersion) {
+    if (user.tokenVersion !== authPayload.tokenVersion) {
       throw new UnauthorizedException('Token inválido o caducado');
     }
-    const customer = await this.prisma.customer.findFirst({
+    const customer = await this.prisma.customer.findUnique({
       where: { userId: user.id },
     });
-    if (!customer) {
-      throw new InternalServerErrorException(
-        'The server could not create the customer, try again',
-      );
-    }
 
     return {
       sub: user.id,

@@ -1,18 +1,16 @@
-import {
-  Injectable,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { UserService } from 'src/user/services/user.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CustomerService } from 'src/customer/services/customer.service';
 import { JwtService } from '@nestjs/jwt';
 import { LogInInput } from '../dtos/requests/login/login.input';
-import { SignUpInput } from '../dtos/requests/signup/signup.input';
+import { CustomerSignUpInput } from '../dtos/requests/signup/customerSignup.input';
 import { MailerService } from '@nestjs-modules/mailer';
 import { v4 as uuidv4 } from 'uuid';
 import { JwtPayload } from '../types/jwt-payload.type';
-import { User } from 'generated/prisma';
+import { User, UserType } from '@prisma/client';
+import { ManagerSignUpInput } from '../dtos/requests/signup/managerSignup.input';
+import { ResetPasswordInput } from '../dtos/requests/resetPassword/resetPassword.input';
 
 @Injectable()
 export class AuthService {
@@ -46,17 +44,16 @@ export class AuthService {
     });
     const payload: JwtPayload = {
       sub: user.id,
-      customerId: customer!.id,
-      userType: 'CUSTOMER',
+      customerId: customer?.id,
+      userType: user.userType,
       tokenVersion: tokenVersion!,
     };
     return this.jwtService.signAsync(payload);
   }
 
-  async registerCustomer(customerInfo: SignUpInput): Promise<string> {
-    const { customer, tokenVersion } =
-      await this.customerService.create(customerInfo);
-    await this.prisma.user.findUnique({
+  async registerCustomer(customerInfo: CustomerSignUpInput): Promise<string> {
+    const customer = await this.customerService.create(customerInfo);
+    await this.prisma.user.findUniqueOrThrow({
       where: { id: customer.userId },
       include: {
         userRoles: {
@@ -74,15 +71,29 @@ export class AuthService {
     const payload: JwtPayload = {
       sub: customer.userId,
       customerId: customer.id,
-      userType: 'CUSTOMER',
-      tokenVersion: tokenVersion,
+      userType: UserType.CUSTOMER,
+      tokenVersion: customer.user.tokenVersion!,
     };
     return this.jwtService.signAsync(payload);
   }
 
-  async logout(userId: string): Promise<void> {
+  async registerManager(
+    managerInfo: ManagerSignUpInput,
+    authPayload: JwtPayload,
+  ): Promise<string> {
+    const manager = await this.userService.createManager(managerInfo);
+    const payload: JwtPayload = {
+      sub: authPayload.sub,
+      customerId: null,
+      userType: authPayload.userType,
+      tokenVersion: manager.tokenVersion!,
+    };
+    return this.jwtService.signAsync(payload);
+  }
+
+  async logout(authPayload: JwtPayload): Promise<void> {
     await this.prisma.user.update({
-      where: { id: userId },
+      where: { id: authPayload.sub },
       data: {
         tokenVersion: { set: null },
       },
@@ -90,9 +101,7 @@ export class AuthService {
   }
 
   async sendRecoverEmail(email: string) {
-    const user = await this.prisma.user.findUnique({ where: { email } });
-    if (!user)
-      throw new NotFoundException('El usuario no se encuentra registrado.');
+    const user = await this.prisma.user.findUniqueOrThrow({ where: { email } });
 
     const token = await this.jwtService.signAsync(
       { sub: user.id },
@@ -101,19 +110,19 @@ export class AuthService {
     await this.mailerService.sendMail({
       to: user.email,
       subject: 'Welcome!',
-      template: '../../templates/welcome',
+      template: 'welcome',
       context: { token: token },
-      text: `Tu token de recuperación: ${token}`,
+      text: `This is your recuperation token: ${token}`,
     });
   }
 
-  async updatePassword(token: string, newPassword: string): Promise<boolean> {
+  async updatePassword(input: ResetPasswordInput): Promise<boolean> {
     let payload: JwtPayload;
     try {
-      payload = await this.jwtService.verifyAsync(token);
+      payload = await this.jwtService.verifyAsync(input.token);
     } catch {
-      throw new UnauthorizedException('Token inválido o expirado');
+      throw new UnauthorizedException('Invalid or expired token.');
     }
-    return await this.userService.updatePassword(newPassword, payload);
+    return await this.userService.updatePassword(input.newPassword, payload);
   }
 }

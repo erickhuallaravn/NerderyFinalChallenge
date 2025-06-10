@@ -1,27 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Option } from 'generated/prisma';
+import { Option } from '@prisma/client';
 
 @Injectable()
 export class OptionService {
   constructor(private prisma: PrismaService) {}
 
   async findOrCreateOption(code: string): Promise<Option> {
-    let option = await this.prisma.option.findUnique({
+    return await this.prisma.option.upsert({
       where: {
         code,
       },
+      create: {
+        name: code,
+        code,
+      },
+      update: {},
     });
-
-    if (!option) {
-      option = await this.prisma.option.create({
-        data: {
-          name: code,
-          code,
-        },
-      });
-    }
-
-    return option;
   }
 }

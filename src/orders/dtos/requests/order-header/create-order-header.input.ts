@@ -1,5 +1,5 @@
 import { InputType, Field } from '@nestjs/graphql';
-import { IsUUID, IsNumber, IsString } from 'class-validator';
+import { IsUUID, IsNumber, IsString, IsOptional } from 'class-validator';
 
 @InputType()
 export class CreateOrderHeaderInput {
@@ -12,6 +12,7 @@ export class CreateOrderHeaderInput {
   subtotal: number;
 
   @Field(() => String, { nullable: true })
+  @IsOptional()
   @IsString()
   notes?: string;
 }

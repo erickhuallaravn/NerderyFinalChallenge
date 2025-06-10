@@ -9,8 +9,8 @@ import { ProductFileResolver } from './resolvers/product-file/product-file.resol
 import { CloudinaryModule } from 'src/cloudinary/cloudinary.module';
 import { FeatureResolver } from './resolvers/feature/feature.resolver';
 import { FeatureService } from './services/feature/feature.service';
-import { OptionService } from './services/option/option.service';
-import { OptionValueService } from './services/option/option-value.service';
+import { OptionService } from './services/feature/option.service';
+import { OptionValueService } from './services/feature/option-value.service';
 
 @Module({
   imports: [PrismaModule, CloudinaryModule],

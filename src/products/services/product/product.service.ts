@@ -1,8 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateProductInput } from '../../dtos/requests/product/create-product.input';
 import { UpdateProductInput } from '../../dtos/requests/product/update-product.input';
-import { Product } from 'generated/prisma';
+import { Product, ProductStatus, RowStatus } from '@prisma/client';
 import { SearchPaginateProductInput } from 'src/products/dtos/requests/product/search-paginate-product.input';
 
 @Injectable()
@@ -14,7 +14,7 @@ export class ProductService {
 
     return this.prisma.product.findMany({
       where: {
-        status: 'AVAILABLE',
+        status: ProductStatus.AVAILABLE,
         OR: search
           ? [
               { name: { contains: search, mode: 'insensitive' } },
@@ -48,11 +48,11 @@ export class ProductService {
       },
       include: {
         variations: {
-          where: { status: 'AVAILABLE' },
+          where: { status: ProductStatus.AVAILABLE },
           include: {
             productFiles: true,
             features: {
-              where: { status: 'ACTIVE' },
+              where: { status: RowStatus.ACTIVE },
               include: {
                 optionValue: {
                   include: {
@@ -70,14 +70,12 @@ export class ProductService {
   }
 
   async findOne(product_id: string): Promise<Product> {
-    const product = await this.prisma.product.findUnique({
+    const product = await this.prisma.product.findUniqueOrThrow({
       where: { id: product_id },
       include: {
         variations: true,
       },
     });
-    if (!product)
-      throw new NotFoundException(`Product with ID ${product_id} not found`);
     return product;
   }
 
@@ -86,7 +84,7 @@ export class ProductService {
       data: {
         name: newProductInfo.name,
         description: newProductInfo.description ?? '',
-        status: 'AVAILABLE',
+        status: ProductStatus.AVAILABLE,
         statusUpdatedAt: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -95,13 +93,9 @@ export class ProductService {
   }
 
   async update(input: UpdateProductInput): Promise<Product> {
-    const existing = await this.prisma.product.findUnique({
+    const existing = await this.prisma.product.findUniqueOrThrow({
       where: { id: input.productId },
     });
-    if (!existing)
-      throw new NotFoundException(
-        `Product with ID ${input.productId} not found`,
-      );
 
     return await this.prisma.product.update({
       where: { id: input.productId },
@@ -116,15 +110,13 @@ export class ProductService {
   }
 
   async delete(product_id: string): Promise<boolean> {
-    const existing = await this.prisma.product.findUnique({
+    await this.prisma.product.findUniqueOrThrow({
       where: { id: product_id },
     });
-    if (!existing)
-      throw new NotFoundException(`Product with ID ${product_id} not found`);
     await this.prisma.product.update({
       where: { id: product_id },
       data: {
-        status: 'DELETED',
+        status: RowStatus.DELETED,
         statusUpdatedAt: new Date(),
       },
     });

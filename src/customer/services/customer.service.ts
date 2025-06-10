@@ -1,8 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { SignUpInput } from '../../auth/dtos/requests/signup/signup.input';
+import { CustomerSignUpInput } from '../../auth/dtos/requests/signup/customerSignup.input';
 import { UserService } from 'src/user/services/user.service';
-import { Customer } from 'generated/prisma';
+import { Prisma } from '@prisma/client';
+
+const customerInclude = {
+  user: true,
+};
 
 @Injectable()
 export class CustomerService {
@@ -12,28 +16,27 @@ export class CustomerService {
   ) {}
 
   async create(
-    newCustomerInfo: SignUpInput,
-  ): Promise<{ customer: Customer; tokenVersion: string }> {
-    const { id } = await this.userService.create({
-      newUserInfo: newCustomerInfo,
-    });
-    const user = await this.prisma.user.findUnique({
+    customerInfo: CustomerSignUpInput,
+  ): Promise<Prisma.CustomerGetPayload<{ include: typeof customerInclude }>> {
+    const { id } = await this.userService.createCustomer(customerInfo);
+    const user = await this.prisma.user.findUniqueOrThrow({
       where: { id },
     });
 
     const customer = await this.prisma.customer.create({
       data: {
-        userId: user!.id,
-        firstName: newCustomerInfo.firstName,
-        lastName: newCustomerInfo.lastName,
-        address: newCustomerInfo.address,
-        phoneNumber: newCustomerInfo.phoneNumber,
-        birthday: newCustomerInfo.birthday
-          ? new Date(newCustomerInfo.birthday)
+        userId: user.id,
+        firstName: customerInfo.firstName,
+        lastName: customerInfo.lastName,
+        address: customerInfo.address,
+        phoneNumber: customerInfo.phoneNumber,
+        birthday: customerInfo.birthday
+          ? new Date(customerInfo.birthday)
           : null,
       },
+      include: customerInclude,
     });
 
-    return { customer: customer, tokenVersion: user!.tokenVersion! };
+    return customer;
   }
 }

@@ -17,9 +17,11 @@ export class CreateOrderItemDiscountInput {
 
   @Field({ nullable: true })
   @IsOptional()
+  @IsNumber()
   discountPercentage?: number;
 
   @Field({ nullable: true })
   @IsOptional()
+  @IsNumber()
   bonusQuantity?: number;
 }
