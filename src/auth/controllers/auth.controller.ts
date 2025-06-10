@@ -1,4 +1,6 @@
 import { Controller, Post, Body, Patch, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+
 import { AuthService } from '../services/auth.service';
 import { LogInInput } from '../dtos/requests/login/login.input';
 import { CustomerSignUpInput } from '../dtos/requests/signup/customerSignup.input';
@@ -49,6 +51,7 @@ export class AuthController {
     return { data: { accessToken: token } };
   }
 
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
   @Post('send-recover-email')
   async sendRecoverEmail(
     @Body('email') email: string,

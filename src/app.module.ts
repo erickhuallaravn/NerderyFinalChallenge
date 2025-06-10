@@ -3,6 +3,7 @@ import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ConfigModule } from '@nestjs/config';
 import { join } from 'path';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 import { AuthModule } from './auth/auth.module';
 import { ProductModule } from './products/products.module';
@@ -19,6 +20,10 @@ import { envSchema } from './config/env.validation';
 
 @Module({
   imports: [
+    ThrottlerModule.forRoot({
+      throttlers: [],
+    }),
+
     ConfigModule.forRoot({
       isGlobal: true,
       validate: (config: Record<string, any>) => {
