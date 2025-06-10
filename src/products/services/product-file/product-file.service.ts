@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { UploadProductFileInput } from '../../dtos/requests/product-file/upload-product-file.input';
 import { ProductFile } from '@prisma/client';
-import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
+
+import { UploadProductFileInput } from '../../dtos/requests/product-file/upload-product-file.input';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { CloudinaryService } from 'src/cloudinary/services/cloudinary.service';
 
 @Injectable()
 export class ProductFileService {

@@ -3,7 +3,7 @@ import { CustomerService } from './customer.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UserService } from 'src/user/services/user.service';
 import { SignUpInput } from 'src/auth/dtos/requests/signup/signup.input';
-import { UserType, UserStatus, RolePermission } from 'generated/prisma';
+import { UserType, UserStatus, RolePermission } from '@prisma/client';
 
 describe('CustomerService (DB-based)', () => {
   let service: CustomerService;

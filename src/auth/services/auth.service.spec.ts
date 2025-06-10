@@ -6,7 +6,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { MailerService } from '@nestjs-modules/mailer';
 import { NotFoundException, UnauthorizedException } from '@nestjs/common';
-import { RolePermission } from 'generated/prisma';
+import { RolePermission } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PASSWORD_ENCRYPT_ROUNDS } from 'src/common/constants/app.constants';
 import { LogInInput } from '../dtos/requests/login/login.input';

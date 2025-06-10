@@ -1,4 +1,4 @@
-import { InputType, PartialType } from '@nestjs/graphql';
+import { Field, InputType, PartialType } from '@nestjs/graphql';
 import { CreateOrderItemInput } from './create-order-item.input';
 import { IsUUID } from 'class-validator';
 

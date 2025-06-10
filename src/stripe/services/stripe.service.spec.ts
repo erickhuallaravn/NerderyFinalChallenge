@@ -7,7 +7,7 @@ import { NotFoundException } from '@nestjs/common';
 import { AuthModule } from 'src/auth/auth.module';
 import { CustomerModule } from 'src/customer/customer.module';
 import { UserModule } from 'src/user/user.module';
-import { RolePermission } from 'generated/prisma';
+import { RolePermission } from '@prisma/client';
 import { JwtPayload } from 'src/auth/types/jwt-payload.type';
 
 describe('StripeService (integration)', () => {

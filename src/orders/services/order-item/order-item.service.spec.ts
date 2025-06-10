@@ -7,7 +7,7 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { CreateOrderItemInput } from 'src/orders/dtos/requests/order-item/create-order-item.input';
 import { UpdateOrderItemInput } from 'src/orders/dtos/requests/order-item/update-order-item.input';
 import { JwtPayload } from 'src/auth/types/jwt-payload.type';
-import { RolePermission, UserType } from 'generated/prisma';
+import { RolePermission, UserType } from '@prisma/client';
 import { OrderModule } from 'src/orders/orders.module';
 import { AuthModule } from 'src/auth/auth.module';
 import { v4 as uuidv4 } from 'uuid';

@@ -8,20 +8,22 @@ import { UpdateOrderHeaderInput } from '../../dtos/requests/order-header/update-
 import { JwtPayload } from 'src/auth/types/jwt-payload.type';
 import { OrderHeaderStatus, RowStatus, UserType } from '@prisma/client';
 
+const orderInclude = {
+  orderItems: {
+    include: {
+      itemDiscounts: true,
+    },
+  },
+  statusHistory: true,
+};
+
 @Injectable()
 export class OrderHeaderService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getOrders() {
     return this.prisma.orderHeader.findMany({
-      include: {
-        orderItems: {
-          include: {
-            itemDiscounts: true,
-          },
-        },
-        statusHistory: true,
-      },
+      include: orderInclude,
     });
   }
 
@@ -44,7 +46,10 @@ export class OrderHeaderService {
   async getOrderById(authPayload: JwtPayload, orderId: string) {
     const order = await this.prisma.orderHeader.findUniqueOrThrow({
       where: { id: orderId },
-      include: orderInclude,
+      include: {
+        orderItems: true,
+        statusHistory: true,
+      },
     });
 
     if (
@@ -52,7 +57,6 @@ export class OrderHeaderService {
       order.customerId !== authPayload.customerId
     )
       throw new ForbiddenException('Access denied to this order');
-    }
 
     return order;
   }
@@ -176,9 +180,8 @@ export class OrderHeaderService {
       throw new BadRequestException('Only pending orders can be anulated');
     }
 
-    const now = new Date();
-
-    await this.prisma.orderHeaderStatusHistory.create({
+    return this.prisma.orderHeader.update({
+      where: { id: orderId },
       data: {
         orderItems: {
           updateMany: { where: {}, data: { status: RowStatus.DELETED } },
@@ -191,12 +194,5 @@ export class OrderHeaderService {
         },
       },
     });
-
-    await this.prisma.orderItem.updateMany({
-      where: { orderHeaderId: orderId },
-      data: { status: 'DELETED', statusUpdatedAt: now },
-    });
-
-    return this.getOrderById(user, orderId);
   }
 }

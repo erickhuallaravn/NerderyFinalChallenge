@@ -9,7 +9,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { UpdateOrderHeaderInput } from '../../dtos/requests/order-header/update-order-header.input';
-import { RolePermission, UserType } from 'generated/prisma';
+import { RolePermission, UserType } from '@prisma/client';
 import { JwtPayload } from 'src/auth/types/jwt-payload.type';
 import { OrderModule } from 'src/orders/orders.module';
 import { AuthModule } from 'src/auth/auth.module';

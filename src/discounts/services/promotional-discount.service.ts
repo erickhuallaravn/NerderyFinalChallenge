@@ -38,7 +38,7 @@ export class PromotionalDiscountService {
         bonusQuantity,
         discountPercentage,
         validUntil,
-        availableStock: availableStock,
+        availableStock: Number(availableStock),
         validSince: new Date(),
         status: RowStatus.ACTIVE,
         statusUpdatedAt: now,
