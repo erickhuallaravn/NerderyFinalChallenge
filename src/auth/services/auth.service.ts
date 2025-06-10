@@ -39,12 +39,12 @@ export class AuthService {
       });
     }
     const userId = user.id;
-    const customer = await this.prisma.customer.findUnique({
+    const customer = await this.prisma.customer.findUniqueOrThrow({
       where: { userId },
     });
     const payload: JwtPayload = {
       sub: user.id,
-      customerId: customer!.id,
+      customerId: customer.id,
       userType: 'CUSTOMER',
       tokenVersion: tokenVersion!,
     };

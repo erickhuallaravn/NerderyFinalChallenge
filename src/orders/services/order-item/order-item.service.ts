@@ -2,7 +2,6 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
-  NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { JwtPayload } from 'src/auth/types/jwt-payload.type';
@@ -31,15 +30,13 @@ export class OrderItemService {
   }
 
   async getItemById(user: JwtPayload, itemId: string) {
-    const item = await this.prisma.orderItem.findUnique({
+    const item = await this.prisma.orderItem.findUniqueOrThrow({
       where: { id: itemId },
       include: {
         orderHeader: true,
         itemDiscounts: true,
       },
     });
-
-    if (!item) throw new NotFoundException('Order item not found');
 
     if (
       user.userType !== UserType.MANAGER &&
@@ -68,10 +65,11 @@ export class OrderItemService {
       throw new ForbiddenException('Access denied to this item');
     }
 
-    const latestStatus = await this.prisma.orderHeaderStatusHistory.findFirst({
-      where: { orderHeaderId: item.orderHeaderId },
-      orderBy: { createdAt: 'desc' },
-    });
+    const latestStatus =
+      await this.prisma.orderHeaderStatusHistory.findFirstOrThrow({
+        where: { orderHeaderId: item.orderHeaderId },
+        orderBy: { createdAt: 'desc' },
+      });
 
     if (latestStatus?.status !== OrderHeaderStatus.PENDING_PAYMENT) {
       throw new BadRequestException(
@@ -92,12 +90,10 @@ export class OrderItemService {
   }
 
   async deleteItem(user: JwtPayload, itemId: string) {
-    const item = await this.prisma.orderItem.findUnique({
+    const item = await this.prisma.orderItem.findUniqueOrThrow({
       where: { id: itemId },
       include: { orderHeader: true },
     });
-
-    if (!item) throw new NotFoundException('Order item not found');
 
     if (
       user.userType !== UserType.MANAGER &&
@@ -106,10 +102,11 @@ export class OrderItemService {
       throw new ForbiddenException('Access denied to this item');
     }
 
-    const latestStatus = await this.prisma.orderHeaderStatusHistory.findFirst({
-      where: { orderHeaderId: item.orderHeaderId },
-      orderBy: { createdAt: 'desc' },
-    });
+    const latestStatus =
+      await this.prisma.orderHeaderStatusHistory.findFirstOrThrow({
+        where: { orderHeaderId: item.orderHeaderId },
+        orderBy: { createdAt: 'desc' },
+      });
 
     if (
       user.userType !== UserType.MANAGER &&

@@ -19,13 +19,13 @@ export class CustomerService {
     customerInfo: CustomerSignUpInput,
   ): Promise<Prisma.CustomerGetPayload<{ include: typeof customerInclude }>> {
     const { id } = await this.userService.createCustomer(customerInfo);
-    const user = await this.prisma.user.findUnique({
+    const user = await this.prisma.user.findUniqueOrThrow({
       where: { id },
     });
 
     const customer = await this.prisma.customer.create({
       data: {
-        userId: user!.id,
+        userId: user.id,
         firstName: customerInfo.firstName,
         lastName: customerInfo.lastName,
         address: customerInfo.address,

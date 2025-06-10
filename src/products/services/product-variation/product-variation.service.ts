@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateProductVariationInput } from '../../dtos/requests/product-variation/create-product-variation.input';
 import { UpdateProductVariationInput } from '../../dtos/requests/product-variation/update-product-variation.input';
@@ -44,15 +44,9 @@ export class ProductVariationService {
   async updateProductVariation(
     input: UpdateProductVariationInput,
   ): Promise<ProductVariation> {
-    const existing = await this.prisma.productVariation.findUnique({
+    const existing = await this.prisma.productVariation.findUniqueOrThrow({
       where: { id: input.productVariationId },
     });
-
-    if (!existing) {
-      throw new NotFoundException(
-        `Variation ID ${input.productVariationId} not found`,
-      );
-    }
 
     const updatedVariation = await this.prisma.productVariation.update({
       where: { id: input.productVariationId },
@@ -82,14 +76,9 @@ export class ProductVariationService {
   }
 
   async deleteProductVariation(productVariationId: string): Promise<boolean> {
-    const variation = await this.prisma.productVariation.findUnique({
+    await this.prisma.productVariation.findUniqueOrThrow({
       where: { id: productVariationId },
     });
-    if (!variation) {
-      throw new NotFoundException(
-        `Variation ID ${productVariationId} not found`,
-      );
-    }
 
     await this.prisma.productVariation.update({
       where: { id: productVariationId },

@@ -1,6 +1,5 @@
 import {
   Injectable,
-  NotFoundException,
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
@@ -46,15 +45,13 @@ export class OrderHeaderService {
   }
 
   async getOrderById(authPayload: JwtPayload, orderId: string) {
-    const order = await this.prisma.orderHeader.findUnique({
+    const order = await this.prisma.orderHeader.findUniqueOrThrow({
       where: { id: orderId },
       include: {
         orderItems: true,
         statusHistory: true,
       },
     });
-
-    if (!order) throw new NotFoundException('Order not found');
 
     if (
       authPayload.userType !== UserType.MANAGER &&
@@ -66,12 +63,12 @@ export class OrderHeaderService {
   }
 
   async createOrder(authPayload: JwtPayload, notes?: string) {
-    const cart = await this.prisma.shopCartHeader.findFirst({
+    const cart = await this.prisma.shopCartHeader.findFirstOrThrow({
       where: { customerId: authPayload.customerId! },
       include: { cartItems: { include: { itemDiscounts: true } } },
     });
 
-    if (!cart || cart.cartItems.length === 0) {
+    if (cart.cartItems.length === 0) {
       throw new BadRequestException('Shopping cart is empty');
     }
     const order = await this.prisma.orderHeader.create({
@@ -124,11 +121,9 @@ export class OrderHeaderService {
     orderId: string,
     input: UpdateOrderHeaderInput,
   ) {
-    const order = await this.prisma.orderHeader.findUnique({
+    const order = await this.prisma.orderHeader.findUniqueOrThrow({
       where: { id: orderId },
     });
-
-    if (!order) throw new NotFoundException('Order not found');
 
     if (
       authPayload.userType !== UserType.MANAGER &&
@@ -136,10 +131,11 @@ export class OrderHeaderService {
     )
       throw new ForbiddenException('Access denied to this order');
 
-    const latestStatus = await this.prisma.orderHeaderStatusHistory.findFirst({
-      where: { orderHeaderId: orderId },
-      orderBy: { createdAt: 'desc' },
-    });
+    const latestStatus =
+      await this.prisma.orderHeaderStatusHistory.findFirstOrThrow({
+        where: { orderHeaderId: orderId },
+        orderBy: { createdAt: 'desc' },
+      });
 
     if (
       authPayload.userType !== UserType.CUSTOMER &&
@@ -161,11 +157,9 @@ export class OrderHeaderService {
   }
 
   async anulateOrder(authPayload: JwtPayload, orderId: string) {
-    const order = await this.prisma.orderHeader.findUnique({
+    const order = await this.prisma.orderHeader.findUniqueOrThrow({
       where: { id: orderId },
     });
-
-    if (!order) throw new NotFoundException('Order not found');
 
     if (
       authPayload.userType !== UserType.MANAGER &&
@@ -173,10 +167,11 @@ export class OrderHeaderService {
     )
       throw new ForbiddenException('Access denied to this order');
 
-    const latestStatus = await this.prisma.orderHeaderStatusHistory.findFirst({
-      where: { orderHeaderId: orderId },
-      orderBy: { createdAt: 'desc' },
-    });
+    const latestStatus =
+      await this.prisma.orderHeaderStatusHistory.findFirstOrThrow({
+        where: { orderHeaderId: orderId },
+        orderBy: { createdAt: 'desc' },
+      });
 
     if (
       authPayload.userType !== UserType.MANAGER &&

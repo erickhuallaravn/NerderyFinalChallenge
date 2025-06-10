@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AddToShopCartInput } from '../../dtos/requests/shop-cart/add-to-shop-cart.input';
 import { JwtPayload } from 'src/auth/types/jwt-payload.type';
@@ -44,13 +44,10 @@ export class ShopCartService {
     input: AddToShopCartInput,
   ): Promise<boolean> {
     const { productVariationId, quantity } = input;
-    const productInfo = await this.prisma.productVariation.findUnique({
+    const productInfo = await this.prisma.productVariation.findUniqueOrThrow({
       where: { id: productVariationId },
       select: { name: true, price: true, currencyCode: true },
     });
-
-    if (!productInfo)
-      throw new NotFoundException('The product specified does not exist.');
 
     const header = await this.getOrCreateHeader(authPayload);
 

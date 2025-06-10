@@ -96,7 +96,7 @@ export class UserService {
     });
 
     const customerRole: Role = await this.prisma.role.findFirstOrThrow({
-      where: { name: 'STANDAR_MANAGER_ROLE' },
+      where: { name: 'STANDARD_MANAGER_ROLE' },
     });
 
     await this.prisma.userRoles.create({

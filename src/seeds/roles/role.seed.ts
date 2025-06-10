@@ -8,20 +8,20 @@ export class RoleSeeder {
   async run() {
     await this.prisma.role.upsert({
       where: {
-        name: 'STANDAR_CUSTOMER_ROLE',
+        name: 'STANDARD_CUSTOMER_ROLE',
       },
       create: {
-        name: 'STANDAR_CUSTOMER_ROLE',
+        name: 'STANDARD_CUSTOMER_ROLE',
         description: 'Standard role for customer',
       },
       update: {},
     });
     await this.prisma.role.upsert({
       where: {
-        name: 'STANDAR_MANAGER_ROLE',
+        name: 'STANDARD_MANAGER_ROLE',
       },
       create: {
-        name: 'STANDAR_MANAGER_ROLE',
+        name: 'STANDARD_MANAGER_ROLE',
         description: 'Standard role for manager',
       },
       update: {},
