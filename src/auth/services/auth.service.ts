@@ -39,13 +39,13 @@ export class AuthService {
       });
     }
     const userId = user.id;
-    const customer = await this.prisma.customer.findUniqueOrThrow({
+    const customer = await this.prisma.customer.findUnique({
       where: { userId },
     });
     const payload: JwtPayload = {
       sub: user.id,
-      customerId: customer.id,
-      userType: 'CUSTOMER',
+      customerId: customer?.id,
+      userType: user.userType,
       tokenVersion: tokenVersion!,
     };
     return this.jwtService.signAsync(payload);
@@ -79,27 +79,21 @@ export class AuthService {
 
   async registerManager(
     managerInfo: ManagerSignUpInput,
-    credentials: JwtPayload,
+    authPayload: JwtPayload,
   ): Promise<string> {
-    if (credentials.userType !== UserType.MANAGER) {
-      throw new UnauthorizedException(
-        'The token provided does not belong to a manager session.',
-      );
-    }
-
     const manager = await this.userService.createManager(managerInfo);
     const payload: JwtPayload = {
-      sub: manager.id,
+      sub: authPayload.sub,
       customerId: null,
-      userType: UserType.MANAGER,
+      userType: authPayload.userType,
       tokenVersion: manager.tokenVersion!,
     };
     return this.jwtService.signAsync(payload);
   }
 
-  async logout(userId: string): Promise<void> {
+  async logout(authPayload: JwtPayload): Promise<void> {
     await this.prisma.user.update({
-      where: { id: userId },
+      where: { id: authPayload.sub },
       data: {
         tokenVersion: { set: null },
       },

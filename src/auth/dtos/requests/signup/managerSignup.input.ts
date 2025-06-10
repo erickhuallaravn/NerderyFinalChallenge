@@ -1,6 +1,7 @@
 import { Field, InputType } from '@nestjs/graphql';
 import {
   IsEmail,
+  IsOptional,
   IsPhoneNumber,
   IsString,
   IsStrongPassword,
@@ -24,7 +25,8 @@ export class ManagerSignUpInput {
   @IsStrongPassword()
   password: string;
 
-  @Field()
+  @Field({ nullable: true })
   @IsPhoneNumber()
+  @IsOptional()
   phoneNumber?: string;
 }

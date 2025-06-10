@@ -6,7 +6,10 @@ import { JwtPayload } from 'src/auth/types/jwt-payload.type';
 import { OrderHeaderService } from '../../services/order-header/order-header.service';
 import { OrderHeader } from '../../models/order-header.model';
 import { UpdateOrderHeaderInput } from '../../dtos/requests/order-header/update-order-header.input';
-import { ValidCustomerPayload, ValidManagerPayload } from 'src/auth/decorators/valid-auth-payload.decorator';
+import {
+  ValidCustomerPayload,
+  ValidManagerPayload,
+} from 'src/auth/decorators/valid-auth-payload.decorator';
 
 @Resolver(() => OrderHeader)
 export class OrderHeaderResolver {

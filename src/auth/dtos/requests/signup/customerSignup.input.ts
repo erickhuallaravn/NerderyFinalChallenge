@@ -2,6 +2,7 @@ import { Field, InputType } from '@nestjs/graphql';
 import {
   IsDate,
   IsEmail,
+  IsOptional,
   IsPhoneNumber,
   IsString,
   IsStrongPassword,
@@ -9,11 +10,14 @@ import {
 
 @InputType()
 export class CustomerSignUpInput {
-  @Field()
+  @Field({ nullable: true })
+  @IsString()
+  @IsOptional()
   address?: string;
 
-  @Field()
+  @Field({ nullable: true })
   @IsDate()
+  @IsOptional()
   birthday?: string;
 
   @Field()
@@ -32,7 +36,8 @@ export class CustomerSignUpInput {
   @IsStrongPassword()
   password: string;
 
-  @Field()
+  @Field({ nullable: true })
   @IsPhoneNumber()
+  @IsOptional()
   phoneNumber?: string;
 }

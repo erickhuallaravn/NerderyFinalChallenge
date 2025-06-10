@@ -1,7 +1,13 @@
 import { Field, InputType, ID } from '@nestjs/graphql';
 import { CurrencyCode } from 'src/shared/enums';
 import { UpdateVariationFeatureInput } from '../variation/update-variation-feature.input';
-import { IsDecimal, IsNumber, IsString, IsUUID } from 'class-validator';
+import {
+  IsDecimal,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 
 @InputType()
 export class CreateProductVariationInput {
@@ -25,5 +31,6 @@ export class CreateProductVariationInput {
   availableStock: number;
 
   @Field(() => [UpdateVariationFeatureInput])
+  @IsOptional()
   features?: [UpdateVariationFeatureInput];
 }

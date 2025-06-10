@@ -5,15 +5,18 @@ import {
 } from '@nestjs/common';
 import { JwtPayload } from '../types/jwt-payload.type';
 import { UserType } from '@prisma/client';
+import { Request } from 'express';
+
+type AuthenticatedRequest = Request & { user?: JwtPayload };
 
 export const ValidCustomerPayload = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext): JwtPayload => {
-    const request = ctx.switchToHttp().getRequest();
-    const user = request.user as JwtPayload;
+  (_data: unknown, ctx: ExecutionContext): JwtPayload => {
+    const request = ctx.switchToHttp().getRequest<AuthenticatedRequest>();
+    const user = request.user;
 
-    if (!user?.customerId || user?.userType !== UserType.CUSTOMER) {
+    if (!user || !user.customerId || user.userType !== UserType.CUSTOMER) {
       throw new BadRequestException(
-        'The request does not contain valid customer payload information, generate a new token and try again.',
+        'The request does not contain valid customer payload information. Generate a new token and try again.',
       );
     }
 
@@ -22,13 +25,13 @@ export const ValidCustomerPayload = createParamDecorator(
 );
 
 export const ValidManagerPayload = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext): JwtPayload => {
-    const request = ctx.switchToHttp().getRequest();
-    const user = request.user as JwtPayload;
+  (_data: unknown, ctx: ExecutionContext): JwtPayload => {
+    const request = ctx.switchToHttp().getRequest<AuthenticatedRequest>();
+    const user = request.user;
 
-    if (user?.userType !== UserType.MANAGER) {
+    if (!user || user.userType !== UserType.MANAGER) {
       throw new BadRequestException(
-        'The request does not contain valid manager payload information, generate a new token and try again.',
+        'The request does not contain valid manager payload information. Generate a new token and try again.',
       );
     }
 

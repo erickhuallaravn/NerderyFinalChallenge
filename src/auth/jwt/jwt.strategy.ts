@@ -21,9 +21,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: JwtPayload): Promise<JwtPayload> {
+  async validate(authPayload: JwtPayload): Promise<JwtPayload> {
     const user = await this.prisma.user.findUniqueOrThrow({
-      where: { id: payload.sub },
+      where: { id: authPayload.sub },
       include: {
         userRoles: {
           select: {
@@ -37,10 +37,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         },
       },
     });
-    if (user.tokenVersion !== payload.tokenVersion) {
+    if (user.tokenVersion !== authPayload.tokenVersion) {
       throw new UnauthorizedException('Token inválido o caducado');
     }
-    const customer = await this.prisma.customer.findFirstOrThrow({
+    const customer = await this.prisma.customer.findUnique({
       where: { userId: user.id },
     });
 

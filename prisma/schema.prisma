@@ -43,8 +43,8 @@ model User {
 }
 
 model UserRoles {
-  userId     String    @db.Uuid
-  roleId     String    @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  roleId     String    @map("role_id") @db.Uuid
   validUntil DateTime? @map("valid_until") @db.Timestamp(6)
 
   role Role @relation(fields: [roleId], references: [id], onDelete: NoAction, onUpdate: NoAction)

@@ -22,7 +22,7 @@ export class AuthController {
     return { data: { accessToken: token } };
   }
 
-  @Post('customer/ign-up')
+  @Post('customer/sign-up')
   async signUp(
     @Body() input: CustomerSignUpInput,
   ): Promise<{ data: AuthTokenResponseOutput }> {
@@ -33,9 +33,9 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Post('sign-out')
   async signOut(
-    @CurrentUser() req: JwtPayload,
+    @CurrentUser() authPayload: JwtPayload,
   ): Promise<{ data: { signedOut: boolean } }> {
-    await this.authService.logout(req.sub);
+    await this.authService.logout(authPayload);
     return { data: { signedOut: true } };
   }
 

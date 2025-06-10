@@ -30,12 +30,10 @@ export class UserService {
         },
       },
     });
-
     const isPasswordValid: boolean = await bcrypt.compare(
       password,
       existingUser.passwordHash,
     );
-
     if (!isPasswordValid) {
       throw new UnauthorizedException(
         'The provided credentials were incorrect.',
@@ -79,7 +77,6 @@ export class UserService {
 
   async createManager(managerInfo: ManagerSignUpInput): Promise<User> {
     const tokenVersion = uuidv4();
-
     const passwordHash = await bcrypt.hash(
       managerInfo.password,
       PASSWORD_ENCRYPT_ROUNDS,
@@ -94,11 +91,9 @@ export class UserService {
         statusUpdatedAt: new Date(),
       },
     });
-
     const customerRole: Role = await this.prisma.role.findFirstOrThrow({
       where: { name: 'STANDARD_MANAGER_ROLE' },
     });
-
     await this.prisma.userRoles.create({
       data: {
         userId: newUser.id,
