@@ -44,31 +44,36 @@ $ npm install
 Create a `.env` file in the root with the following structure:
 
 ```env
-# JWT
-JWT_SECRET_KEY=your_jwt_secret
+# === JWT Authentication ===
+JWT_SECRET_KEY=supersecretjwtkey           # Secret key for signing and verifying JWTs
 
-# Database
-DATABASE_URL=postgresql://user:password@host:port/dbname
+# === Database (PostgreSQL) ===
+DATABASE_URL=postgresql://postgres:password@localhost:5432/mydb  # Main database connection URL
 
-# Mail Configuration
-MAIL_HOST=smtp.example.com
-MAIL_PORT=587
-MAIL_USER=your_email@example.com
-MAIL_PASSWORD=your_password
+# === Email Configuration ===
+MAIL_HOST=smtp.mailtrap.io                 # SMTP server host
+MAIL_PORT=2525                             # SMTP server port
+MAIL_USER=username                         # SMTP username
+MAIL_PASSWORD=password                     # SMTP password
 
-# File Upload Config
-MAX_FILE_SIZE=5000000
-MAX_FILES_IN_UPLOAD=5
+# === Cloudinary (File Storage) ===
+CLOUDINARY_CLOUD_NAME=mycloud              # Cloudinary cloud name
+CLOUDINARY_API_KEY=1234567890              # Cloudinary API key
+CLOUDINARY_API_SECRET=abcdefg1234567       # Cloudinary API secret
 
-# Cloudinary
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
+# === Stripe (Payment Processing) ===
+STRIPE_SECRET_KEY=sk_test_...              # Stripe secret key
+STRIPE_WEBHOOK_SECRET=whsec_...            # Stripe webhook signing secret
 
-# Stripe
-STRIPE_SECRET_KEY=your_stripe_secret_key
-STRIPE_WEBHOOK_SECRET=your_webhook_secret
-BASE_URL=ngrook_generated_url
+# === File Uploads ===
+MAX_FILE_SIZE=5242880                      # Maximum file size allowed (in bytes)
+MAX_FILES_IN_UPLOAD=5                      # Maximum number of files per upload
+
+# === Application URL ===
+BASE_URL=https://example.ngrok.io          # Public base URL (e.g. ngrok for development)
+
+# === Environment Mode ===
+NODE_ENV=development                       # Can be: development | test | production
 ```
 
 ---
@@ -93,7 +98,13 @@ $ npx prisma generate
 $ npx prisma migrate dev --name init
 ```
 
-### 4. Open Prisma Studio
+### 4. Populate the database
+
+```bash
+$ npm run seed
+```
+
+### 5. Open Prisma Studio
 
 ```bash
 $ npx prisma studio
@@ -159,6 +170,9 @@ $ npx prisma generate
 # Migrate DB
 $ npx prisma migrate dev --name <migration-name>
 
+# Populate DB
+$ npm run seed
+
 # Open Prisma Studio
 $ npx prisma studio
 ```
@@ -187,26 +201,6 @@ POST /payment/webhook
 ```
 
 The request must include the raw body and `stripe-signature` header.
-
----
-
-## 🧪 Sample .env File
-
-```env
-JWT_SECRET_KEY=supersecretjwtkey
-DATABASE_URL=postgresql://postgres:password@localhost:5432/mydb
-MAIL_HOST=smtp.mailtrap.io
-MAIL_PORT=2525
-MAIL_USER=username
-MAIL_PASSWORD=password
-MAX_FILE_SIZE=5242880
-MAX_FILES_IN_UPLOAD=5
-CLOUDINARY_CLOUD_NAME=mycloud
-CLOUDINARY_API_KEY=1234567890
-CLOUDINARY_API_SECRET=abcdefg1234567
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-```
 
 ---
 

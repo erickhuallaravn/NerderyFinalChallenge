@@ -15,12 +15,21 @@ import { OrderModule } from './orders/orders.module';
 import { StripeModule } from './stripe/stripe.module';
 import { SeederModule } from './seeds/seeder.module';
 
-void ConfigModule.forRoot({
-  isGlobal: true,
-});
+import { envSchema } from './config/env.validation';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validate: (config: Record<string, any>) => {
+        const result = envSchema.safeParse(config);
+        if (!result.success) {
+          throw new Error('Invalid environment variables');
+        }
+        return result.data;
+      },
+    }),
+
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
       autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
@@ -37,7 +46,7 @@ void ConfigModule.forRoot({
     PromotionalDiscountsModule,
     OrderModule,
     StripeModule,
-    SeederModule
+    SeederModule,
   ],
   controllers: [],
   providers: [],
