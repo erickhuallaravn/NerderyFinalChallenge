@@ -3,8 +3,9 @@ import { Feature } from '../../models/feature/feature.model';
 import { FeatureService } from '../../services/feature/feature.service';
 import { AddVariationFeatureInput } from '../../dtos/requests/variation/add-variation-feature.input';
 import { Feature as FeatureEntity } from '@prisma/client';
+import { SkipThrottle } from '@nestjs/throttler';
 
-@Resolver(() => Feature)
+@SkipThrottle()
 @Resolver(() => Feature)
 export class FeatureResolver {
   constructor(private readonly featureService: FeatureService) {}

@@ -10,8 +10,13 @@ import { UseGuards } from '@nestjs/common';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { GqlAuthGuard } from 'src/auth/guards/gql-auth.guard';
 import { JwtPayload } from 'src/auth/types/jwt-payload.type';
-import { ValidManagerPayload } from 'src/auth/decorators/valid-auth-payload.decorator';
+import {
+  ValidCustomerPayload,
+  ValidManagerPayload,
+} from 'src/auth/decorators/valid-auth-payload.decorator';
+import { SkipThrottle } from '@nestjs/throttler';
 
+@SkipThrottle()
 @Resolver(() => ProductVariation)
 export class ProductVariationResolver {
   constructor(
@@ -24,7 +29,7 @@ export class ProductVariationResolver {
     @CurrentUser() @ValidManagerPayload() authPayload: JwtPayload,
     @Args('input') input: CreateProductVariationInput,
   ): Promise<ProductVariationEntity> {
-    return this.productVariationService.createProductVariation(input);
+    return this.productVariationService.create(input);
   }
 
   @Mutation(() => ProductVariation)
@@ -32,7 +37,7 @@ export class ProductVariationResolver {
     @CurrentUser() @ValidManagerPayload() authPayload: JwtPayload,
     @Args('input') input: UpdateProductVariationInput,
   ): Promise<ProductVariationEntity> {
-    return this.productVariationService.updateProductVariation(input);
+    return this.productVariationService.update(input);
   }
 
   @Mutation(() => Boolean)
@@ -41,8 +46,18 @@ export class ProductVariationResolver {
     @Args('productVariationId', { type: () => ID })
     productVariationId: string,
   ): Promise<boolean> {
-    return this.productVariationService.deleteProductVariation(
+    return this.productVariationService.delete(productVariationId);
+  }
+
+  @UseGuards(GqlAuthGuard)
+  @Mutation(() => Boolean)
+  async markVariationAsLiked(
+    @CurrentUser() @ValidCustomerPayload() authPayload: JwtPayload,
+    @Args('productVariationId', { type: () => ID }) productVariationId: string,
+  ): Promise<boolean> {
+    return this.productVariationService.markLiked(
       productVariationId,
+      authPayload,
     );
   }
 }

@@ -83,6 +83,7 @@ type Mutation {
   deleteProductVariation(productVariationId: ID!): Boolean!
   deletePromotionalDiscount(id: String!): Boolean!
   emptyCart: Boolean!
+  markVariationAsLiked(productVariationId: ID!): Boolean!
   updateOrder(input: UpdateOrderHeaderInput!, orderId: String!): OrderHeader!
   updateOrderItem(input: UpdateOrderItemInput!, itemId: String!): OrderItem!
   updateProduct(input: UpdateProductInput!): Product!
@@ -207,6 +208,7 @@ type PromotionalDiscount {
 
 type Query {
   getItemsByOrder(itemId: String!): OrderItem!
+  getLikedProducts: [Product!]!
   getMyCartItems: [ShopCartItem!]!
   getMyOrders: [OrderHeader!]!
   getOrderItem(itemId: String!): OrderItem!

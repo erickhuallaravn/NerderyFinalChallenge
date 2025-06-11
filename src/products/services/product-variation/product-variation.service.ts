@@ -4,6 +4,7 @@ import { CreateProductVariationInput } from '../../dtos/requests/product-variati
 import { UpdateProductVariationInput } from '../../dtos/requests/product-variation/update-product-variation.input';
 import { ProductStatus, ProductVariation, RowStatus } from '@prisma/client';
 import { FeatureService } from '../feature/feature.service';
+import { JwtPayload } from 'src/auth/types/jwt-payload.type';
 
 @Injectable()
 export class ProductVariationService {
@@ -12,9 +13,7 @@ export class ProductVariationService {
     private readonly featureService: FeatureService,
   ) {}
 
-  async createProductVariation(
-    input: CreateProductVariationInput,
-  ): Promise<ProductVariation> {
+  async create(input: CreateProductVariationInput): Promise<ProductVariation> {
     return this.prisma.$transaction(async (tx) => {
       const newVariation = await tx.productVariation.create({
         data: {
@@ -41,9 +40,7 @@ export class ProductVariationService {
     });
   }
 
-  async updateProductVariation(
-    input: UpdateProductVariationInput,
-  ): Promise<ProductVariation> {
+  async update(input: UpdateProductVariationInput): Promise<ProductVariation> {
     return this.prisma.$transaction(async (tx) => {
       const existing = await tx.productVariation.findUniqueOrThrow({
         where: { id: input.productVariationId },
@@ -75,7 +72,7 @@ export class ProductVariationService {
     });
   }
 
-  async deleteProductVariation(productVariationId: string): Promise<boolean> {
+  async delete(productVariationId: string): Promise<boolean> {
     await this.prisma.productVariation.findUniqueOrThrow({
       where: { id: productVariationId },
     });
@@ -89,5 +86,37 @@ export class ProductVariationService {
     });
 
     return true;
+  }
+
+  async markLiked(
+    productVariationId: string,
+    authPayload: JwtPayload,
+  ): Promise<boolean> {
+    await this.prisma.productVariation.findUniqueOrThrow({
+      where: { id: productVariationId },
+    });
+    const compositeKey = {
+      customerId: authPayload.customerId!,
+      productVariationId,
+    };
+    const likedVariation = await this.prisma.customerLikedProducts.findUnique({
+      where: {
+        customerId_productVariationId: compositeKey,
+      },
+    });
+
+    if (!likedVariation) {
+      await this.prisma.customerLikedProducts.create({
+        data: compositeKey,
+      });
+      return true;
+    } else {
+      await this.prisma.customerLikedProducts.delete({
+        where: {
+          customerId_productVariationId: compositeKey,
+        },
+      });
+      return false;
+    }
   }
 }

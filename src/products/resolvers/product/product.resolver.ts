@@ -11,11 +11,24 @@ import { UseGuards } from '@nestjs/common';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { GqlAuthGuard } from 'src/auth/guards/gql-auth.guard';
 import { JwtPayload } from 'src/auth/types/jwt-payload.type';
-import { ValidManagerPayload } from 'src/auth/decorators/valid-auth-payload.decorator';
+import {
+  ValidManagerPayload,
+  ValidCustomerPayload,
+} from 'src/auth/decorators/valid-auth-payload.decorator';
+import { SkipThrottle } from '@nestjs/throttler';
 
+@SkipThrottle()
 @Resolver(() => Product)
 export class ProductResolver {
   constructor(private readonly productService: ProductService) {}
+
+  @UseGuards(GqlAuthGuard)
+  @Query(() => [Product])
+  async getLikedProducts(
+    @CurrentUser() @ValidCustomerPayload() authPayload: JwtPayload,
+  ): Promise<ProductEntity[]> {
+    return this.productService.findLikedProducts(authPayload);
+  }
 
   @Query(() => [Product])
   async getProducts(

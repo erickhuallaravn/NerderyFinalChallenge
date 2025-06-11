@@ -10,7 +10,9 @@ import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { GqlAuthGuard } from 'src/auth/guards/gql-auth.guard';
 import { JwtPayload } from 'src/auth/types/jwt-payload.type';
 import { ValidManagerPayload } from 'src/auth/decorators/valid-auth-payload.decorator';
+import { SkipThrottle } from '@nestjs/throttler';
 
+@SkipThrottle()
 @Resolver(() => ProductFile)
 export class ProductFileResolver {
   constructor(private readonly productFileService: ProductFileService) {}

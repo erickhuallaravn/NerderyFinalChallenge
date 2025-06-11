@@ -8,7 +8,9 @@ import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from 'src/auth/guards/gql-auth.guard';
 import { JwtPayload } from 'src/auth/types/jwt-payload.type';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
+import { SkipThrottle } from '@nestjs/throttler';
 
+@SkipThrottle()
 @Resolver(() => OrderItem)
 @UseGuards(GqlAuthGuard)
 export class OrderItemResolver {

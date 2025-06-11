@@ -8,7 +8,9 @@ import { JwtPayload } from 'src/auth/types/jwt-payload.type';
 import { PromotionalDiscount as PromotionalDiscountEntity } from '@prisma/client';
 import { GqlAuthGuard } from 'src/auth/guards/gql-auth.guard';
 import { ValidManagerPayload } from 'src/auth/decorators/valid-auth-payload.decorator';
+import { SkipThrottle } from '@nestjs/throttler';
 
+@SkipThrottle()
 @Resolver(() => PromotionalDiscount)
 @UseGuards(GqlAuthGuard)
 export class PromotionalDiscountsResolver {

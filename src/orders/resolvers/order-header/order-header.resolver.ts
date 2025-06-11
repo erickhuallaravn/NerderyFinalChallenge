@@ -14,7 +14,9 @@ import {
   ValidCustomerPayload,
   ValidManagerPayload,
 } from 'src/auth/decorators/valid-auth-payload.decorator';
+import { SkipThrottle } from '@nestjs/throttler';
 
+@SkipThrottle()
 @Resolver(() => OrderHeader)
 export class OrderHeaderResolver {
   constructor(private readonly orderHeaderService: OrderHeaderService) {}

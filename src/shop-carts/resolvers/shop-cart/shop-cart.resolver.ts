@@ -8,7 +8,9 @@ import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { JwtPayload } from 'src/auth/types/jwt-payload.type';
 import { GqlAuthGuard } from 'src/auth/guards/gql-auth.guard';
 import { ValidCustomerPayload } from 'src/auth/decorators/valid-auth-payload.decorator';
+import { SkipThrottle } from '@nestjs/throttler';
 
+@SkipThrottle()
 @Resolver(() => ShopCartResolver)
 @UseGuards(GqlAuthGuard)
 export class ShopCartResolver {

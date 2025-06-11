@@ -4,10 +4,45 @@ import { CreateProductInput } from '../../dtos/requests/product/create-product.i
 import { UpdateProductInput } from '../../dtos/requests/product/update-product.input';
 import { Product, ProductStatus, RowStatus } from '@prisma/client';
 import { SearchPaginateProductInput } from 'src/products/dtos/requests/product/search-paginate-product.input';
+import { JwtPayload } from 'src/auth/types/jwt-payload.type';
 
 @Injectable()
 export class ProductService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async findLikedProducts(authPayload: JwtPayload): Promise<Product[]> {
+    return this.prisma.product.findMany({
+      where: {
+        variations: {
+          some: {
+            likedByCustomers: {
+              some: {
+                customerId: authPayload.customerId!,
+              },
+            },
+          },
+        },
+      },
+      include: {
+        variations: {
+          where: { status: ProductStatus.AVAILABLE },
+          include: {
+            productFiles: true,
+            features: {
+              where: { status: RowStatus.ACTIVE },
+              include: {
+                optionValue: {
+                  include: {
+                    option: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+  }
 
   async findAll(input?: SearchPaginateProductInput): Promise<Product[]> {
     const { search, limit, offset } = input || {};
@@ -73,7 +108,22 @@ export class ProductService {
     const product = await this.prisma.product.findUniqueOrThrow({
       where: { id: product_id },
       include: {
-        variations: true,
+        variations: {
+          where: { status: ProductStatus.AVAILABLE },
+          include: {
+            productFiles: true,
+            features: {
+              where: { status: RowStatus.ACTIVE },
+              include: {
+                optionValue: {
+                  include: {
+                    option: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
     return product;

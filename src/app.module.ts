@@ -21,14 +21,12 @@ import { envSchema } from './config/env.validation';
 
 @Module({
   imports: [
-    ThrottlerModule.forRoot({
-      throttlers: [
-        {
-          ttl: 10000,
-          limit: 10,
-        },
-      ],
-    }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 10000, //10 seconds
+        limit: 10,
+      },
+    ]),
 
     ConfigModule.forRoot({
       isGlobal: true,
