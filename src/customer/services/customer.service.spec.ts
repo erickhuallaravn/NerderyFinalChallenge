@@ -2,10 +2,20 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { CustomerService } from './customer.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UserService } from 'src/user/services/user.service';
-import { SignUpInput } from 'src/auth/dtos/requests/signup/signup.input';
+import { CustomerSignUpInput } from 'src/auth/dtos/requests/signup/customerSignup.input';
 import { UserType, UserStatus, RolePermission } from '@prisma/client';
 
 describe('CustomerService (DB-based)', () => {
+  const customerCreateInput: CustomerSignUpInput = {
+    email: 'test@customer.com',
+    password: '123456',
+    firstName: 'Test',
+    lastName: 'Customer',
+    address: '123 Street',
+    phoneNumber: '1234567890',
+    birthday: '2000-01-01',
+  };
+
   let service: CustomerService;
   let prisma: PrismaService;
 
@@ -19,7 +29,20 @@ describe('CustomerService (DB-based)', () => {
   });
 
   beforeEach(async () => {
-    await prisma.cleanDatabase?.();
+    await prisma.cleanDatabase();
+
+    await prisma.role.create({
+      data: {
+        name: 'STANDARD_CUSTOMER_ROLE',
+        description: 'Standard role for customer',
+        permissions: [
+          RolePermission.READ,
+          RolePermission.UPDATE,
+          RolePermission.WRITE,
+          RolePermission.DELETE,
+        ],
+      },
+    });
   });
 
   afterAll(async () => {
@@ -28,43 +51,14 @@ describe('CustomerService (DB-based)', () => {
 
   describe('create()', () => {
     it('should create a user and customer with correct data', async () => {
-      await prisma.role.create({
-        data: {
-          name: 'STANDARD_CUSTOMER',
-          description: 'Standard role',
-          permissions: [
-            RolePermission.READ,
-            RolePermission.WRITE,
-            RolePermission.UPDATE,
-            RolePermission.DELETE,
-          ],
-        },
-      });
+      const customer = await service.create(customerCreateInput);
 
-      const input: SignUpInput = {
-        email: 'test@customer.com',
-        password: '123456',
-        firstName: 'Test',
-        lastName: 'Customer',
-        address: '123 Street',
-        phoneNumber: '1234567890',
-        birthday: '2000-01-01',
-      };
-
-      const result = await service.create(input);
-
-      expect(result.customer).toBeDefined();
-      expect(result.customer.firstName).toBe('Test');
-      expect(result.tokenVersion).toBeDefined();
-
-      const user = await prisma.user.findUnique({
-        where: { id: result.customer.userId },
-      });
-
-      expect(user).toBeDefined();
-      expect(user?.email).toBe(input.email);
-      expect(user?.userType).toBe(UserType.CUSTOMER);
-      expect(user?.status).toBe(UserStatus.ACTIVE);
+      expect(customer).toBeDefined();
+      expect(customer.user).toBeDefined();
+      expect(customer.user.tokenVersion).toBeDefined();
+      expect(customer.user.email).toBe(customerCreateInput.email);
+      expect(customer.user.userType).toBe(UserType.CUSTOMER);
+      expect(customer.user.status).toBe(UserStatus.ACTIVE);
     });
   });
 });

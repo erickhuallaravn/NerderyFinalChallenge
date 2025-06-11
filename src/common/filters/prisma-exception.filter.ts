@@ -3,79 +3,76 @@ import {
   Catch,
   ArgumentsHost,
   HttpException,
+  NotFoundException,
+  BadRequestException,
+  InternalServerErrorException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
-import { GqlArgumentsHost } from '@nestjs/graphql';
 import { Response } from 'express';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
-@Catch()
+@Catch(PrismaClientKnownRequestError, HttpException)
 export class GlobalExceptionFilter implements ExceptionFilter {
-  catch(exception: any, host: ArgumentsHost) {
-    console.error('Unhandled Exception:', exception);
+  catch(exception: unknown, host: ArgumentsHost) {
+    console.error('Exception caught:', exception);
     const contextType = host.getType<'http' | 'graphql'>();
 
+    const handlePrismaError = (exception: PrismaClientKnownRequestError) => {
+      switch (exception.code) {
+        case 'P2025':
+          return new NotFoundException(
+            exception.meta?.cause || 'Resource was not found.',
+          );
+        case 'P2002':
+          return new BadRequestException(
+            'Duplicated unique field was provided.',
+          );
+        default:
+          return new BadRequestException(
+            'There was an error in the database, please try again.',
+          );
+      }
+    };
+
     if (contextType === 'graphql') {
-      GqlArgumentsHost.create(host);
-
-      if (exception instanceof Prisma.PrismaClientKnownRequestError) {
-        if (exception.code === 'P2025') {
-          throw new HttpException('Resource was not found.', 404);
-        }
-
-        if (exception.code === 'P2002') {
-          throw new HttpException('Duplicated unique field was provided.', 400);
-        }
-
-        throw new HttpException(
-          'There was an error in the database, please try again.',
-          400,
-        );
+      if (exception instanceof PrismaClientKnownRequestError) {
+        throw handlePrismaError(exception);
       }
 
       if (exception instanceof HttpException) {
         throw exception;
       }
 
-      throw new HttpException(
+      throw new InternalServerErrorException(
         'There was an internal error in the server, please try again.',
-        500,
       );
     }
 
-    // Default HTTP context handling
+    // HTTP context
     const ctx = host.switchToHttp();
-    const response = ctx.getResponse<Response>();
+    const res = ctx.getResponse<Response>();
 
-    if (exception instanceof Prisma.PrismaClientKnownRequestError) {
-      if (exception.code === 'P2025') {
-        const cause: string =
-          (exception.meta?.cause as string) ?? 'Resource was not found.';
-        return response.status(404).json({
-          error: { detail: cause },
-        });
-      }
-
-      if (exception.code === 'P2002') {
-        return response.status(400).json({
-          error: { detail: 'Duplicated unique field was provided.' },
-        });
-      }
-
-      return response.status(400).json({
+    if (exception instanceof PrismaClientKnownRequestError) {
+      const prismaError = handlePrismaError(exception);
+      return res.status(prismaError.getStatus()).json({
         error: {
-          detail: 'There was an error in the database, please try again.',
+          detail: prismaError.message,
         },
       });
     }
 
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
-      const message = exception.getResponse();
-      return response.status(status).json({
-        error: { detail: message },
+      const response = exception.getResponse();
+
+      return res.status(status).json({
+        error: {
+          detail: response,
+        },
       });
     }
-    return response.status(500).json({
+
+    // Fallback for unknown errors
+    return res.status(500).json({
       error: {
         detail: 'There was an internal error in the server, please try again.',
       },

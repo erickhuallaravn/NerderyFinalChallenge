@@ -1,34 +1,44 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ShopCartService } from './shop-cart.service';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { NotFoundException } from '@nestjs/common';
-import { v4 as uuidv4 } from 'uuid';
+import { AuthService } from 'src/auth/services/auth.service';
+import { AuthModule } from 'src/auth/auth.module';
+import { JwtService } from '@nestjs/jwt';
 import { PASSWORD_ENCRYPT_ROUNDS } from 'src/common/constants/app.constants';
+import { JwtPayload } from 'src/auth/types/jwt-payload.type';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import * as bcrypt from 'bcrypt';
+import { v4 as uuidv4 } from 'uuid';
+import { CurrencyCode } from '@prisma/client';
 
 describe('ShopCartService', () => {
   let service: ShopCartService;
   let prisma: PrismaService;
+  let authService: AuthService;
+  let jwtService: JwtService;
 
   let customerId: string;
+  let authPayload: JwtPayload;
+  let productId: string;
+  let productVariationId: string;
+  let currencyCode: CurrencyCode;
+  let variationName: string;
 
-  beforeAll(async () => {
+  beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
+      imports: [AuthModule],
       providers: [ShopCartService, PrismaService],
     }).compile();
 
-    service = module.get<ShopCartService>(ShopCartService);
-    prisma = module.get<PrismaService>(PrismaService);
-  });
+    prisma = module.get(PrismaService);
+    service = module.get(ShopCartService);
+    authService = module.get(AuthService);
+    jwtService = module.get(JwtService);
 
-  beforeEach(async () => {
     await prisma.cleanDatabase();
 
-    const rawPassword: string = 'secret123';
-    const hashed: string = await bcrypt.hash(
-      rawPassword,
-      PASSWORD_ENCRYPT_ROUNDS,
-    );
+    const rawPassword = 'secret123';
+    const hashed = await bcrypt.hash(rawPassword, PASSWORD_ENCRYPT_ROUNDS);
 
     const user = await prisma.user.create({
       data: {
@@ -50,44 +60,19 @@ describe('ShopCartService', () => {
         birthday: new Date(),
       },
     });
-
     customerId = customer.id;
-  });
 
-  afterAll(async () => {
-    await prisma.$disconnect();
-  });
+    const jwtToken = await authService.login({
+      email: user.email,
+      password: rawPassword,
+    });
 
-  it('should create header if not exists', async () => {
-    const header = await service['getOrCreateHeader'](customerId);
-    expect(header).toBeDefined();
-    expect(header.customerId).toBe(customerId);
+    authPayload = await jwtService.verifyAsync(jwtToken);
 
-    const headerAgain = await service['getOrCreateHeader'](customerId);
-    expect(headerAgain.id).toBe(header.id);
-  });
-
-  it('should return empty items when no products in cart', async () => {
-    const items = await service.getItems(customerId);
-    expect(Array.isArray(items)).toBe(true);
-    expect(items.length).toBe(0);
-  });
-
-  it('should throw when product variation does not exist', async () => {
-    await expect(
-      service.addOrUpdateItem(customerId, {
-        productVariationId: uuidv4(),
-        quantity: 1,
-      }),
-    ).rejects.toThrow(NotFoundException);
-  });
-
-  it('should add new item without promo', async () => {
     const product = await prisma.product.create({
       data: {
-        name: 'Product',
-        description: 'product',
-        createdAt: new Date(),
+        name: 'Default Product',
+        description: 'Basic description',
         status: 'AVAILABLE',
         statusUpdatedAt: new Date(),
       },
@@ -96,7 +81,7 @@ describe('ShopCartService', () => {
     const variation = await prisma.productVariation.create({
       data: {
         productId: product.id,
-        name: 'Variation',
+        name: 'Default Variation',
         price: 100,
         currencyCode: 'USD',
         availableStock: 50,
@@ -105,8 +90,43 @@ describe('ShopCartService', () => {
       },
     });
 
-    const result = await service.addOrUpdateItem(customerId, {
-      productVariationId: variation.id,
+    productId = product.id;
+    productVariationId = variation.id;
+    currencyCode = variation.currencyCode;
+    variationName = variation.name;
+  });
+
+  afterAll(async () => {
+    await prisma.$disconnect();
+  });
+
+  it('should create header if not exists', async () => {
+    const header = await service.getOrCreateHeader(authPayload);
+    expect(header).toBeDefined();
+    expect(header.customerId).toBe(customerId);
+
+    const headerAgain = await service['getOrCreateHeader'](authPayload);
+    expect(headerAgain.id).toBe(header.id);
+  });
+
+  it('should return empty items when no products in cart', async () => {
+    const items = await service.getItems(authPayload);
+    expect(Array.isArray(items)).toBe(true);
+    expect(items.length).toBe(0);
+  });
+
+  it('should throw when product variation does not exist', async () => {
+    await expect(
+      service.addOrUpdateItem(authPayload, {
+        productVariationId: uuidv4(),
+        quantity: 1,
+      }),
+    ).rejects.toThrow(PrismaClientKnownRequestError);
+  });
+
+  it('should add new item without promo', async () => {
+    const result = await service.addOrUpdateItem(authPayload, {
+      productVariationId,
       quantity: 2,
     });
 
@@ -114,49 +134,28 @@ describe('ShopCartService', () => {
 
     const items = await prisma.shopCartItem.findMany();
     expect(items.length).toBe(1);
-    expect(items[0].productName).toBe('Variation');
+    expect(items[0].productName).toBe(variationName);
     expect(Number(items[0].subtotal)).toBe(200);
   });
 
   it('should add item with promo and meet requirements', async () => {
-    const product = await prisma.product.create({
-      data: {
-        name: 'Promo Product',
-        description: 'promo-product',
-        status: 'AVAILABLE',
-        statusUpdatedAt: new Date(),
-      },
-    });
-
-    const variation = await prisma.productVariation.create({
-      data: {
-        productId: product.id,
-        name: 'Promo Variation',
-        price: 100,
-        currencyCode: 'USD',
-        availableStock: 100,
-        status: 'AVAILABLE',
-        statusUpdatedAt: new Date(),
-      },
-    });
-
     const promo = await prisma.promotionalDiscount.create({
       data: {
         name: 'Testing promotion',
-        productVariationId: variation.id,
+        productVariationId,
         discountType: 'BOTH',
         requiredAmount: 2,
         bonusQuantity: 1,
         discountPercentage: 10,
-        validUntil: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        validUntil: new Date(Date.now() + 86400000),
         availableStock: 100,
         status: 'ACTIVE',
         statusUpdatedAt: new Date(),
       },
     });
 
-    const result = await service.addOrUpdateItem(customerId, {
-      productVariationId: variation.id,
+    const result = await service.addOrUpdateItem(authPayload, {
+      productVariationId,
       quantity: 3,
     });
 
@@ -168,38 +167,17 @@ describe('ShopCartService', () => {
   });
 
   it('should update existing item and remove promo if not applicable', async () => {
-    const header = await service['getOrCreateHeader'](customerId);
-
-    const product = await prisma.product.create({
-      data: {
-        name: 'Test Product',
-        description: 'product',
-        status: 'AVAILABLE',
-        statusUpdatedAt: new Date(),
-      },
-    });
-
-    const variation = await prisma.productVariation.create({
-      data: {
-        productId: product.id,
-        name: 'Test Variation',
-        price: 100,
-        currencyCode: 'USD',
-        availableStock: 10,
-        status: 'AVAILABLE',
-        statusUpdatedAt: new Date(),
-      },
-    });
+    const header = await service['getOrCreateHeader'](authPayload);
 
     const promo = await prisma.promotionalDiscount.create({
       data: {
         name: 'Testing promotion',
-        productVariationId: variation.id,
+        productVariationId,
         discountType: 'BOTH',
         requiredAmount: 3,
         bonusQuantity: 1,
         discountPercentage: 15,
-        validUntil: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        validUntil: new Date(Date.now() + 86400000),
         availableStock: 100,
         status: 'ACTIVE',
         statusUpdatedAt: new Date(),
@@ -209,10 +187,11 @@ describe('ShopCartService', () => {
     const item = await prisma.shopCartItem.create({
       data: {
         shoppingCartHeaderId: header.id,
-        productVariationId: variation.id,
-        productName: variation.name,
+        productVariationId,
+        productName: variationName,
         quantity: 3,
         subtotal: 300,
+        currencyCode,
       },
     });
 
@@ -226,8 +205,8 @@ describe('ShopCartService', () => {
       },
     });
 
-    const result = await service.addOrUpdateItem(customerId, {
-      productVariationId: variation.id,
+    const result = await service.addOrUpdateItem(authPayload, {
+      productVariationId,
       quantity: 1,
     });
 
@@ -241,32 +220,11 @@ describe('ShopCartService', () => {
   });
 
   it('should empty the cart', async () => {
-    const header = await service['getOrCreateHeader'](customerId);
-
-    const product = await prisma.product.create({
-      data: {
-        name: 'Test Product',
-        description: 'product',
-        status: 'AVAILABLE',
-        statusUpdatedAt: new Date(),
-      },
-    });
-
-    const variation1 = await prisma.productVariation.create({
-      data: {
-        productId: product.id,
-        name: 'Var1',
-        price: 100,
-        currencyCode: 'USD',
-        availableStock: 10,
-        status: 'AVAILABLE',
-        statusUpdatedAt: new Date(),
-      },
-    });
+    const header = await service['getOrCreateHeader'](authPayload);
 
     const variation2 = await prisma.productVariation.create({
       data: {
-        productId: product.id,
+        productId,
         name: 'Var2',
         price: 200,
         currencyCode: 'USD',
@@ -280,10 +238,11 @@ describe('ShopCartService', () => {
       data: [
         {
           shoppingCartHeaderId: header.id,
-          productVariationId: variation1.id,
-          productName: 'Var1',
+          productVariationId,
+          productName: variationName,
           quantity: 1,
           subtotal: 100,
+          currencyCode: 'USD',
         },
         {
           shoppingCartHeaderId: header.id,
@@ -291,11 +250,12 @@ describe('ShopCartService', () => {
           productName: 'Var2',
           quantity: 2,
           subtotal: 400,
+          currencyCode: 'USD',
         },
       ],
     });
 
-    const result = await service.emptyCart(customerId);
+    const result = await service.emptyCart(authPayload);
     expect(result).toBe(true);
 
     const items = await prisma.shopCartItem.findMany({
@@ -306,33 +266,12 @@ describe('ShopCartService', () => {
   });
 
   it('should skip promo if quantity does not meet requirement (new item)', async () => {
-    const product = await prisma.product.create({
-      data: {
-        name: 'Promo Product',
-        description: 'promo-product',
-        status: 'AVAILABLE',
-        statusUpdatedAt: new Date(),
-      },
-    });
-
-    const variation = await prisma.productVariation.create({
-      data: {
-        productId: product.id,
-        name: 'Promo Variation',
-        price: 100,
-        currencyCode: 'USD',
-        availableStock: 100,
-        status: 'AVAILABLE',
-        statusUpdatedAt: new Date(),
-      },
-    });
-
     await prisma.promotionalDiscount.create({
       data: {
         name: 'Promo skip test',
-        productVariationId: variation.id,
+        productVariationId,
         discountType: 'BONUS',
-        requiredAmount: 5, // greater than quantity
+        requiredAmount: 5,
         bonusQuantity: 2,
         validUntil: new Date(Date.now() + 10000),
         availableStock: 50,
@@ -341,8 +280,8 @@ describe('ShopCartService', () => {
       },
     });
 
-    const result = await service.addOrUpdateItem(customerId, {
-      productVariationId: variation.id,
+    const result = await service.addOrUpdateItem(authPayload, {
+      productVariationId,
       quantity: 2,
     });
 
@@ -353,44 +292,23 @@ describe('ShopCartService', () => {
   });
 
   it('should apply promo with undefined bonus and discount', async () => {
-    const product = await prisma.product.create({
-      data: {
-        name: 'Product',
-        description: 'product',
-        status: 'AVAILABLE',
-        statusUpdatedAt: new Date(),
-      },
-    });
-
-    const variation = await prisma.productVariation.create({
-      data: {
-        productId: product.id,
-        name: 'Variation',
-        price: 150,
-        currencyCode: 'USD',
-        availableStock: 20,
-        status: 'AVAILABLE',
-        statusUpdatedAt: new Date(),
-      },
-    });
-
     const promo = await prisma.promotionalDiscount.create({
       data: {
         name: 'Null bonus/discount',
-        productVariationId: variation.id,
+        productVariationId,
         discountType: 'PERCENTAGE',
         requiredAmount: 2,
         discountPercentage: null,
         bonusQuantity: null,
-        validUntil: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        validUntil: new Date(Date.now() + 86400000),
         availableStock: 10,
         status: 'ACTIVE',
         statusUpdatedAt: new Date(),
       },
     });
 
-    const result = await service.addOrUpdateItem(customerId, {
-      productVariationId: variation.id,
+    const result = await service.addOrUpdateItem(authPayload, {
+      productVariationId,
       quantity: 3,
     });
 
@@ -402,48 +320,27 @@ describe('ShopCartService', () => {
   });
 
   it('should apply promo on update if requirement is now met', async () => {
-    const product = await prisma.product.create({
-      data: {
-        name: 'Upgrade Promo',
-        description: 'update promo test',
-        status: 'AVAILABLE',
-        statusUpdatedAt: new Date(),
-      },
-    });
-
-    const variation = await prisma.productVariation.create({
-      data: {
-        productId: product.id,
-        name: 'Upgrade Variation',
-        price: 120,
-        currencyCode: 'USD',
-        availableStock: 100,
-        status: 'AVAILABLE',
-        statusUpdatedAt: new Date(),
-      },
-    });
-
     const promo = await prisma.promotionalDiscount.create({
       data: {
         name: 'Promo for upgrade',
-        productVariationId: variation.id,
+        productVariationId,
         discountType: 'PERCENTAGE',
         requiredAmount: 3,
         discountPercentage: 5,
-        validUntil: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        validUntil: new Date(Date.now() + 86400000),
         availableStock: 20,
         status: 'ACTIVE',
         statusUpdatedAt: new Date(),
       },
     });
 
-    await service.addOrUpdateItem(customerId, {
-      productVariationId: variation.id,
+    await service.addOrUpdateItem(authPayload, {
+      productVariationId,
       quantity: 1,
     });
 
-    const result = await service.addOrUpdateItem(customerId, {
-      productVariationId: variation.id,
+    const result = await service.addOrUpdateItem(authPayload, {
+      productVariationId,
       quantity: 3,
     });
 

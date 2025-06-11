@@ -52,13 +52,12 @@ export class PromotionalDiscountService {
     });
   }
 
-  async deletePromotion(id: string, userType: UserType): Promise<boolean> {
-    if (userType !== 'CUSTOMER') {
+  async deletePromotion(id: string, authPayload: JwtPayload): Promise<boolean> {
+    if (authPayload.userType !== UserType.MANAGER) {
       throw new ForbiddenException(
-        `User type ${userType} can not delete promotional discounts`,
+        `User type ${authPayload.userType} can not create promotional discount`,
       );
     }
-
     await this.prisma.promotionalDiscount.delete({
       where: { id },
     });

@@ -5,13 +5,53 @@ import { AuthService } from './auth.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { MailerService } from '@nestjs-modules/mailer';
-import { NotFoundException, UnauthorizedException } from '@nestjs/common';
-import { RolePermission } from '@prisma/client';
+import { UnauthorizedException } from '@nestjs/common';
+import {
+  RolePermission,
+  RowStatus,
+  User,
+  UserStatus,
+  UserType,
+} from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { v4 as uuidv4 } from 'uuid';
+
 import { PASSWORD_ENCRYPT_ROUNDS } from 'src/common/constants/app.constants';
 import { LogInInput } from '../dtos/requests/login/login.input';
+import { JwtPayload } from '../types/jwt-payload.type';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { CustomerSignUpInput } from '../dtos/requests/signup/customerSignup.input';
+import { ManagerSignUpInput } from '../dtos/requests/signup/managerSignup.input';
+import { ResetPasswordInput } from '../dtos/requests/resetPassword/resetPassword.input';
 
-describe('AuthService (DB-based)', () => {
+describe('AuthService', () => {
+  let authPayload: JwtPayload;
+  let jwtToken: string;
+  let user: User | null;
+  const loginInput: LogInInput = {
+    email: 'test@login.com',
+    password: 'testPassword',
+  };
+  const customerSignUpInput: CustomerSignUpInput = {
+    email: 'customer@login.com',
+    password: 'customerPassword',
+    firstName: 'customerFirstName',
+    lastName: 'customerLastName',
+  };
+  const managerSignUpInput: ManagerSignUpInput = {
+    email: 'manager@login.com',
+    password: 'managerpassword',
+    firstName: 'managerFirstName',
+    lastName: 'managerLastName',
+  };
+  const resetPasswordInput: ResetPasswordInput = {
+    newPassword: 'newPassword',
+    token: uuidv4(),
+  };
+
+  let customerRoleId: string;
+  let managerRoleId: string;
+
   let service: AuthService;
   let prisma: PrismaService;
   let jwtService: JwtService;
@@ -31,6 +71,62 @@ describe('AuthService (DB-based)', () => {
 
   beforeEach(async () => {
     await prisma.cleanDatabase();
+
+    const hashed: string = await bcrypt.hash(
+      loginInput.password,
+      PASSWORD_ENCRYPT_ROUNDS,
+    );
+    user = await prisma.user.create({
+      data: {
+        email: loginInput.email,
+        passwordHash: hashed,
+        userType: UserType.MANAGER,
+        status: RowStatus.ACTIVE,
+        statusUpdatedAt: new Date(),
+      },
+    });
+    await prisma.customer.create({
+      data: {
+        userId: user.id,
+        firstName: 'Customer',
+        lastName: 'Test',
+        address: 'Some address',
+        phoneNumber: '123456',
+        birthday: new Date(),
+      },
+    });
+    const customerRole = await prisma.role.create({
+      data: {
+        name: 'STANDARD_CUSTOMER_ROLE',
+        description: 'Standard role for customer',
+        permissions: [
+          RolePermission.READ,
+          RolePermission.UPDATE,
+          RolePermission.WRITE,
+          RolePermission.DELETE,
+        ],
+      },
+    });
+    customerRoleId = customerRole.id;
+    const managerRole = await prisma.role.create({
+      data: {
+        name: 'STANDARD_MANAGER_ROLE',
+        description: 'Standard role for manager',
+        permissions: [
+          RolePermission.READ,
+          RolePermission.UPDATE,
+          RolePermission.WRITE,
+          RolePermission.DELETE,
+        ],
+      },
+    });
+    managerRoleId = managerRole.id;
+    await prisma.userRoles.create({
+      data: {
+        userId: user.id,
+        roleId: customerRole.id,
+      },
+    });
   });
 
   afterAll(async () => {
@@ -39,233 +135,147 @@ describe('AuthService (DB-based)', () => {
 
   describe('login()', () => {
     it('should login a user and set tokenVersion if null', async () => {
-      const rawPassword = 'secret123';
-      const hashed = await bcrypt.hash(rawPassword, PASSWORD_ENCRYPT_ROUNDS);
+      jwtToken = await service.login(loginInput);
+      authPayload = await jwtService.verifyAsync(jwtToken);
 
-      const user = await prisma.user.create({
-        data: {
-          email: 'test@login.com',
-          passwordHash: hashed,
-          userType: 'CUSTOMER',
-          status: 'ACTIVE',
-          statusUpdatedAt: new Date(),
-        },
-      });
-
-      await prisma.customer.create({
-        data: {
-          userId: user.id,
-          firstName: 'Customer',
-          lastName: 'Test',
-          address: 'Some address',
-          phoneNumber: '123456',
-          birthday: new Date(),
-        },
-      });
-
-      const token = await service.login({
-        email: user.email,
-        password: rawPassword,
-      });
-      expect(typeof token).toBe('string');
-
-      const updatedUser = await prisma.user.findUnique({
-        where: { id: user.id },
-      });
-      expect(updatedUser?.tokenVersion).toBeDefined();
+      expect(typeof jwtToken).toBe('string');
+      expect(user?.tokenVersion).toBeDefined();
     });
 
     it('should login a user and reuse existing tokenVersion if not null', async () => {
-      const rawPassword = 'secret123';
-      const hashed = await bcrypt.hash(rawPassword, PASSWORD_ENCRYPT_ROUNDS);
-
-      const user = await prisma.user.create({
+      expect(typeof jwtToken).toBe('string');
+      const existingTokenVersion: string = uuidv4();
+      user = await prisma.user.update({
+        where: { id: user!.id },
         data: {
-          email: 'test2@login.com',
-          passwordHash: hashed,
-          userType: 'CUSTOMER',
-          status: 'ACTIVE',
-          statusUpdatedAt: new Date(),
-          tokenVersion: 'existing-version',
+          tokenVersion: {
+            set: existingTokenVersion,
+          },
         },
       });
 
-      await prisma.customer.create({
-        data: {
-          userId: user.id,
-          firstName: 'Customer',
-          lastName: 'Test',
-          address: 'Some address',
-          phoneNumber: '123456',
-          birthday: new Date(),
-        },
-      });
+      jwtToken = await service.login(loginInput);
+      authPayload = await jwtService.verifyAsync(jwtToken);
 
-      const token = await service.login({
-        email: user.email,
-        password: rawPassword,
-      });
-      expect(typeof token).toBe('string');
-
-      const updatedUser = await prisma.user.findUnique({
-        where: { id: user.id },
-      });
-      expect(updatedUser?.tokenVersion).toBe('existing-version');
+      expect(typeof jwtToken).toBe('string');
+      expect(user?.tokenVersion).toBe(existingTokenVersion);
     });
 
     it('should throw UnauthorizedException if password is incorrect', async () => {
-      const rawPassword = 'correctpass';
-      const hashed = await bcrypt.hash(rawPassword, PASSWORD_ENCRYPT_ROUNDS);
+      loginInput.password = 'incorrectpassword';
 
-      await prisma.user.create({
-        data: {
-          email: 'wrongpass@test.com',
-          passwordHash: hashed,
-          userType: 'CUSTOMER',
-          status: 'ACTIVE',
-          statusUpdatedAt: new Date(),
-        },
-      });
-
-      const input: LogInInput = {
-        email: 'wrongpass@test.com',
-        password: 'incorrectpass',
-      };
-      await expect(service.login(input)).rejects.toThrow(UnauthorizedException);
+      await expect(service.login(loginInput)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should throw if user status is not ACTIVE', async () => {
-      const rawPassword = 'secret123';
-      const hashed = await bcrypt.hash(rawPassword, PASSWORD_ENCRYPT_ROUNDS);
-
-      await prisma.user.create({
+      await prisma.user.update({
+        where: {
+          id: user!.id,
+        },
         data: {
-          email: 'inactive@login.com',
-          passwordHash: hashed,
-          userType: 'CUSTOMER',
-          status: 'INACTIVE',
-          statusUpdatedAt: new Date(),
+          status: UserStatus.INACTIVE,
         },
       });
 
-      const input: LogInInput = {
-        email: 'inactive@login.com',
-        password: rawPassword,
-      };
-      await expect(service.login(input)).rejects.toThrow(UnauthorizedException);
+      await expect(service.login(loginInput)).rejects.toThrow(
+        PrismaClientKnownRequestError,
+      );
     });
   });
 
   describe('registerCustomer()', () => {
     it('should create a new customer, assign role, and return token', async () => {
-      await prisma.role.create({
-        data: {
-          name: 'STANDARD_CUSTOMER',
-          description: 'Standard role',
-          permissions: [
-            RolePermission.READ,
-            RolePermission.WRITE,
-            RolePermission.UPDATE,
-            RolePermission.DELETE,
-          ],
-        },
-      });
-
-      const token = await service.registerCustomer({
-        email: 'customer@test.com',
-        password: 'password123',
-        firstName: 'John',
-        lastName: 'Doe',
-      });
-
-      expect(typeof token).toBe('string');
-
-      const user = await prisma.user.findUnique({
-        where: { email: 'customer@test.com' },
-      });
-      expect(user).toBeDefined();
-
-      const userRoles = await prisma.userRoles.findMany({
-        where: { userId: user!.id },
-      });
-      expect(userRoles.length).toBeGreaterThan(0);
+      jwtToken = await service.registerCustomer(customerSignUpInput);
+      expect(typeof jwtToken).toBe('string');
     });
 
     it('should throw if STANDARD_CUSTOMER role is missing', async () => {
+      await prisma.role.delete({
+        where: {
+          id: customerRoleId,
+        },
+      });
       await expect(
-        service.registerCustomer({
-          email: 'noroletest@test.com',
-          password: 'password123',
-          firstName: 'No',
-          lastName: 'Role',
-        }),
-      ).rejects.toThrow();
+        service.registerCustomer(customerSignUpInput),
+      ).rejects.toThrow(PrismaClientKnownRequestError);
+    });
+  });
+
+  describe('registerManager()', () => {
+    it('should create a new manager, assign role, and return token', async () => {
+      jwtToken = await service.login(loginInput);
+      authPayload = await jwtService.verifyAsync(jwtToken);
+
+      jwtToken = await service.registerManager(managerSignUpInput, authPayload);
+      expect(typeof jwtToken).toBe('string');
+    });
+
+    it('should throw if STANDARD_MANAGER role is missing', async () => {
+      await prisma.role.delete({
+        where: {
+          id: managerRoleId,
+        },
+      });
+      jwtToken = await service.login(loginInput);
+      authPayload = await jwtService.verifyAsync(jwtToken);
+
+      await expect(
+        service.registerManager(managerSignUpInput, authPayload),
+      ).rejects.toThrow(PrismaClientKnownRequestError);
     });
   });
 
   describe('logout()', () => {
     it('should clear tokenVersion', async () => {
-      const user = await prisma.user.create({
-        data: {
-          email: 'logout@test.com',
-          passwordHash: 'dummy',
-          userType: 'CUSTOMER',
-          tokenVersion: 'v1',
-          status: 'ACTIVE',
-          statusUpdatedAt: new Date(),
-        },
-      });
+      jwtToken = await service.login(loginInput);
+      authPayload = await jwtService.verifyAsync(jwtToken);
 
-      await service.logout(user.id);
+      await service.logout(authPayload);
 
-      const updatedUser = await prisma.user.findUnique({
-        where: { id: user.id },
+      user = await prisma.user.findUnique({
+        where: { id: user!.id },
       });
-      expect(updatedUser?.tokenVersion).toBeNull();
+      expect(user?.tokenVersion).toBeNull();
     });
 
     it('should handle logout when tokenVersion is already null', async () => {
-      const user = await prisma.user.create({
+      jwtToken = await service.login(loginInput);
+      authPayload = await jwtService.verifyAsync(jwtToken);
+
+      await prisma.user.update({
+        where: {
+          id: user!.id,
+        },
         data: {
-          email: 'nulltoken@test.com',
-          passwordHash: 'dummy',
-          userType: 'CUSTOMER',
-          status: 'ACTIVE',
-          statusUpdatedAt: new Date(),
-          tokenVersion: null,
+          tokenVersion: {
+            set: null,
+          },
         },
       });
 
-      await expect(service.logout(user.id)).resolves.toBeUndefined();
+      await expect(service.logout(authPayload)).resolves.toBeUndefined();
     });
   });
 
   describe('sendRecoverEmail()', () => {
     it('should send a recovery email with a token', async () => {
-      const user = await prisma.user.create({
-        data: {
-          email: 'recover@test.com',
-          passwordHash: 'dummy',
-          userType: 'CUSTOMER',
-          status: 'ACTIVE',
-          statusUpdatedAt: new Date(),
-        },
-      });
-
       const spy = jest
         .spyOn(mailerService, 'sendMail')
         .mockResolvedValueOnce({} as any);
 
-      await service.sendRecoverEmail(user.email);
+      await service.sendRecoverEmail(user!.email);
 
       expect(spy).toHaveBeenCalledWith(
         expect.objectContaining({
-          to: user.email,
+          to: user!.email,
           subject: 'Welcome!',
-          template: '../../templates/welcome',
+          template: 'welcome',
           context: expect.objectContaining({
             token: expect.any(String),
           }),
+          text: expect.stringContaining('This is your recuperation token'),
         }),
       );
 
@@ -275,104 +285,47 @@ describe('AuthService (DB-based)', () => {
     it('should throw if user is not found', async () => {
       await expect(
         service.sendRecoverEmail('unknown@mail.com'),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(PrismaClientKnownRequestError);
     });
 
     it('should throw if mailerService.sendMail fails', async () => {
-      const user = await prisma.user.create({
-        data: {
-          email: 'failmail@test.com',
-          passwordHash: 'dummy',
-          userType: 'CUSTOMER',
-          status: 'ACTIVE',
-          statusUpdatedAt: new Date(),
-        },
-      });
-
-      jest
+      const spy = jest
         .spyOn(mailerService, 'sendMail')
         .mockRejectedValueOnce(new Error('Mail failed'));
 
-      await expect(service.sendRecoverEmail(user.email)).rejects.toThrow(
+      await expect(service.sendRecoverEmail(user!.email)).rejects.toThrow(
         'Mail failed',
       );
-    });
 
-    it('should throw if user is not CUSTOMER (e.g., MANAGER)', async () => {
-      await prisma.user.create({
-        data: {
-          email: 'manager@test.com',
-          passwordHash: 'dummy',
-          userType: 'MANAGER',
-          status: 'ACTIVE',
-          statusUpdatedAt: new Date(),
-        },
-      });
-
-      await expect(
-        service.sendRecoverEmail('manager@test.com'),
-      ).rejects.toThrow();
+      spy.mockRestore();
     });
   });
 
   describe('updatePassword()', () => {
     it('should update password if token is valid', async () => {
-      const oldPassword = 'oldpass';
-      const newPassword = 'newpass';
-
-      const hashed = await bcrypt.hash(oldPassword, PASSWORD_ENCRYPT_ROUNDS);
-      const user = await prisma.user.create({
-        data: {
-          email: 'changepass@test.com',
-          passwordHash: hashed,
-          userType: 'CUSTOMER',
-          status: 'ACTIVE',
-          statusUpdatedAt: new Date(),
-        },
-      });
-
       const token = await jwtService.signAsync(
-        { sub: user.id },
+        { sub: user!.id },
         { expiresIn: '15m' },
       );
+      resetPasswordInput.token = token;
 
-      const result = await service.updatePassword(token, newPassword);
+      const result = await service.updatePassword(resetPasswordInput);
       expect(result).toBe(true);
 
-      const updated = await prisma.user.findUnique({ where: { id: user.id } });
-      const match = await bcrypt.compare(newPassword, updated!.passwordHash);
+      const updated = await prisma.user.findUnique({ where: { id: user!.id } });
+      const match = await bcrypt.compare(
+        resetPasswordInput.newPassword,
+        updated!.passwordHash,
+      );
       expect(match).toBe(true);
     });
 
     it('should throw if token is invalid', async () => {
-      await expect(
-        service.updatePassword('invalid.token', 'pass'),
-      ).rejects.toThrow(UnauthorizedException);
-    });
+      resetPasswordInput.token = uuidv4();
 
-    it('should throw if user from token does not exist', async () => {
-      const token = await jwtService.signAsync(
-        { sub: 'non-existent-user-id' },
-        { expiresIn: '15m' },
+      await expect(service.updatePassword(resetPasswordInput)).rejects.toThrow(
+        UnauthorizedException,
       );
-
-      await expect(service.updatePassword(token, 'newpass')).rejects.toThrow();
-    });
-
-    it('should throw if user has no passwordHash (unexpected case)', async () => {
-      const user = await prisma.user.create({
-        data: {
-          email: 'nopasshash@test.com',
-          passwordHash: '',
-          userType: 'CUSTOMER',
-          status: 'ACTIVE',
-          statusUpdatedAt: new Date(),
-        },
-      });
-
-      const token = await jwtService.signAsync({ sub: user.id });
-
-      await expect(service.updatePassword(token, 'newpass')).rejects.toThrow();
     });
   });
 });

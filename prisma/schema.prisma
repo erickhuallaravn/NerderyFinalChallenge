@@ -184,7 +184,7 @@ model ProductVariation {
   currencyCode   CurrencyCode @map("currency_code")
   availableStock Int          @map("available_stock")
 
-  product Product @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt       DateTime?     @map("updated_at") @db.Timestamp(6)

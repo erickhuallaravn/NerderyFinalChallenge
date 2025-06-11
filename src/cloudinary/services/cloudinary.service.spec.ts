@@ -35,7 +35,7 @@ describe('CloudinaryService (integration)', () => {
       uploader: {
         upload_stream: (_: any, callback: (err: any, res: any) => void) => {
           const writable = new Writable({
-            write(_chunk, _encoding) {
+            write() {
               callback(null, null);
             },
           });
@@ -65,7 +65,7 @@ describe('CloudinaryService (integration)', () => {
       uploader: {
         upload_stream: (_: any, callback: (err: any, res: any) => void) => {
           const writable = new Writable({
-            write(_chunk, _encoding) {
+            write() {
               callback(null, null);
             },
           });

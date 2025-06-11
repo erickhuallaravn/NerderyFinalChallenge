@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Role, RowStatus, User, UserType } from '@prisma/client';
+import { Role, RowStatus, User, UserStatus, UserType } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { LogInInput } from '../../auth/dtos/requests/login/login.input';
 import { CustomerSignUpInput } from '../../auth/dtos/requests/signup/customerSignup.input';
@@ -16,7 +16,7 @@ export class UserService {
   async findByCredentials(userCredentials: LogInInput): Promise<User> {
     const { email, password } = userCredentials;
     const existingUser = await this.prisma.user.findUniqueOrThrow({
-      where: { email: email },
+      where: { email: email, status: UserStatus.ACTIVE },
       include: {
         userRoles: {
           select: {

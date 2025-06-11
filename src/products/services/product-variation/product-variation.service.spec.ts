@@ -53,7 +53,7 @@ describe('ProductVariationService', () => {
       ],
     };
 
-    const result = await service.createProductVariation(input);
+    const result = await service.create(input);
 
     expect(result).toBeDefined();
     expect(result.name).toBe('Test Variation');
@@ -102,7 +102,7 @@ describe('ProductVariationService', () => {
       ],
     };
 
-    const updated = await service.updateProductVariation(input);
+    const updated = await service.update(input);
 
     expect(updated.name).toBe('Updated Name');
     expect(Number(updated.price)).toBe(75);
@@ -116,7 +116,7 @@ describe('ProductVariationService', () => {
 
   it('should throw if variation to update does not exist', async () => {
     await expect(
-      service.updateProductVariation({
+      service.update({
         productVariationId: uuidv4(),
         name: 'Name',
       }),
@@ -145,7 +145,7 @@ describe('ProductVariationService', () => {
       },
     });
 
-    const result = await service.deleteProductVariation(variation.id);
+    const result = await service.delete(variation.id);
     expect(result).toBe(true);
 
     const deleted = await prisma.productVariation.findUnique({
@@ -156,8 +156,6 @@ describe('ProductVariationService', () => {
   });
 
   it('should throw if trying to delete non-existing variation', async () => {
-    await expect(service.deleteProductVariation(uuidv4())).rejects.toThrow(
-      NotFoundException,
-    );
+    await expect(service.delete(uuidv4())).rejects.toThrow(NotFoundException);
   });
 });
