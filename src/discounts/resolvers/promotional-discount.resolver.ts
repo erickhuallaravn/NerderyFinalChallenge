@@ -36,8 +36,8 @@ export class PromotionalDiscountsResolver {
   @Mutation(() => Boolean)
   deletePromotionalDiscount(
     @Args('id') id: string,
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() authPayload: JwtPayload,
   ): Promise<boolean> {
-    return this.promotionalDiscountService.deletePromotion(id, user.userType);
+    return this.promotionalDiscountService.deletePromotion(id, authPayload);
   }
 }

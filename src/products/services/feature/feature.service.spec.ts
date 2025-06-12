@@ -1,9 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { FeatureService } from './feature.service';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { OptionValueService } from '../option/option-value.service';
+import { OptionValueService } from './option-value.service';
 import { AddVariationFeatureInput } from '../../dtos/requests/variation/add-variation-feature.input';
 import { ProductModule } from 'src/products/products.module';
+import { CurrencyCode } from '@prisma/client';
 
 describe('FeatureService', () => {
   let service: FeatureService;
@@ -42,8 +43,8 @@ describe('FeatureService', () => {
     const variation = await prisma.productVariation.create({
       data: {
         name: 'Variation A',
-        currencyCode: 'USD',
-        price: 100,
+        currencyCode: CurrencyCode.USD,
+        price: 100.0,
         availableStock: 10,
         status: 'AVAILABLE',
         statusUpdatedAt: new Date(),

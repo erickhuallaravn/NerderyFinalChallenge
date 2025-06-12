@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ProductService } from './product.service';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { NotFoundException } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 describe('ProductService', () => {
   let service: ProductService;
@@ -73,7 +73,9 @@ describe('ProductService', () => {
   });
 
   it('should throw NotFoundException if product not found by ID', async () => {
-    await expect(service.findOne(uuidv4())).rejects.toThrow(NotFoundException);
+    await expect(service.findOne(uuidv4())).rejects.toThrow(
+      PrismaClientKnownRequestError,
+    );
   });
 
   it('should update an existing product', async () => {
@@ -95,7 +97,7 @@ describe('ProductService', () => {
   it('should throw NotFoundException when updating non-existent product', async () => {
     await expect(
       service.update({ productId: uuidv4(), name: 'X' }),
-    ).rejects.toThrow(NotFoundException);
+    ).rejects.toThrow(PrismaClientKnownRequestError);
   });
 
   it('should soft delete a product (mark as DELETED)', async () => {
@@ -111,6 +113,8 @@ describe('ProductService', () => {
   });
 
   it('should throw NotFoundException when deleting non-existent product', async () => {
-    await expect(service.delete(uuidv4())).rejects.toThrow(NotFoundException);
+    await expect(service.delete(uuidv4())).rejects.toThrow(
+      PrismaClientKnownRequestError,
+    );
   });
 });

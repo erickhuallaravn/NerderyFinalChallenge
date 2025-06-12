@@ -29,7 +29,7 @@ export class OrderItemService {
     });
   }
 
-  async getItemById(user: JwtPayload, itemId: string) {
+  async getItemById(authPayload: JwtPayload, itemId: string) {
     const item = await this.prisma.orderItem.findUniqueOrThrow({
       where: { id: itemId },
       include: {
@@ -39,8 +39,8 @@ export class OrderItemService {
     });
 
     if (
-      user.userType !== UserType.MANAGER &&
-      item.orderHeader.customerId !== user.customerId
+      authPayload.userType !== UserType.MANAGER &&
+      item.orderHeader.customerId !== authPayload.customerId
     ) {
       throw new ForbiddenException('Access denied to this order item');
     }
@@ -89,15 +89,15 @@ export class OrderItemService {
     });
   }
 
-  async deleteItem(user: JwtPayload, itemId: string) {
+  async deleteItem(authPayload: JwtPayload, itemId: string) {
     const item = await this.prisma.orderItem.findUniqueOrThrow({
       where: { id: itemId },
       include: { orderHeader: true },
     });
 
     if (
-      user.userType !== UserType.MANAGER &&
-      item.orderHeader.customerId !== user.customerId
+      authPayload.userType !== UserType.MANAGER &&
+      item.orderHeader.customerId !== authPayload.customerId
     ) {
       throw new ForbiddenException('Access denied to this item');
     }
@@ -109,7 +109,7 @@ export class OrderItemService {
       });
 
     if (
-      user.userType !== UserType.MANAGER &&
+      authPayload.userType !== UserType.MANAGER &&
       latestStatus?.status !== OrderHeaderStatus.PENDING_PAYMENT
     ) {
       throw new BadRequestException(

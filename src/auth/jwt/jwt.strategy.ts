@@ -22,6 +22,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(authPayload: JwtPayload): Promise<JwtPayload> {
+    if (
+      !authPayload ||
+      typeof authPayload.sub !== 'string' ||
+      typeof authPayload.tokenVersion !== 'string' ||
+      !authPayload.userType
+    ) {
+      throw new UnauthorizedException('JWT inválido');
+    }
+
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: authPayload.sub },
       include: {
@@ -37,9 +46,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         },
       },
     });
+
     if (user.tokenVersion !== authPayload.tokenVersion) {
       throw new UnauthorizedException('Token inválido o caducado');
     }
+
     const customer = await this.prisma.customer.findUnique({
       where: { userId: user.id },
     });

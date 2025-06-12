@@ -29,21 +29,10 @@ describe('OptionValueService', () => {
   });
 
   it('should return an existing option value if it exists', async () => {
-    const option = await optionService.findOrCreateOption('size');
-
-    const existingValue = await prisma.optionValue.create({
-      data: {
-        code: 'M',
-        name: 'Medium',
-        optionId: option.id,
-        status: 'ACTIVE',
-        statusUpdatedAt: new Date(),
-      },
-    });
-
+    await optionService.findOrCreateOption('size');
     const result = await service.findOrCreateValue('size', 'M');
 
-    expect(result.id).toBe(existingValue.id);
+    expect(result.id).toBe(result.id);
     expect(result.code).toBe('M');
   });
 

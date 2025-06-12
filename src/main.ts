@@ -6,7 +6,7 @@ import helmet from 'helmet';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-
+  app.enableCors();
   const maxFileSize = Number(process.env.MAX_FILE_SIZE) || 5_242_880; // 5MB by default
   const maxFiles = Number(process.env.MAX_FILES_IN_UPLOAD) || 5;
 
@@ -19,7 +19,12 @@ async function bootstrap() {
 
   app.useGlobalFilters(new GlobalExceptionFilter());
 
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy:
+        process.env.NODE_ENV === 'production' ? undefined : false,
+    }),
+  );
 
   app.enableCors({
     origin: ['http://localhost:3000'],

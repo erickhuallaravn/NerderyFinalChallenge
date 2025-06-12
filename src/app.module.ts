@@ -40,11 +40,10 @@ import { envSchema } from './config/env.validation';
     }),
 
     GraphQLModule.forRoot<ApolloDriverConfig>({
-      driver: ApolloDriver,
       autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
-      sortSchema: true,
+      driver: ApolloDriver,
       graphiql: true,
-      csrfPrevention: false,
+      introspection: true,
     }),
     AuthModule,
     UserModule,

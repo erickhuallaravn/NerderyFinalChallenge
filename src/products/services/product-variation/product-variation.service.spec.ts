@@ -1,11 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ProductVariationService } from './product-variation.service';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { NotFoundException } from '@nestjs/common';
 import { CreateProductVariationInput } from 'src/products/dtos/requests/product-variation/create-product-variation.input';
 import { UpdateProductVariationInput } from 'src/products/dtos/requests/product-variation/update-product-variation.input';
 import { ProductModule } from 'src/products/products.module';
 import { v4 as uuidv4 } from 'uuid';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { CurrencyCode, ProductStatus } from '@prisma/client';
 
 describe('ProductVariationService', () => {
   let service: ProductVariationService;
@@ -120,7 +121,7 @@ describe('ProductVariationService', () => {
         productVariationId: uuidv4(),
         name: 'Name',
       }),
-    ).rejects.toThrow(NotFoundException);
+    ).rejects.toThrow(PrismaClientKnownRequestError);
   });
 
   it('should delete a variation by marking it DELETED', async () => {
@@ -128,7 +129,7 @@ describe('ProductVariationService', () => {
       data: {
         name: 'Delete Test Product',
         description: 'delete-product',
-        status: 'AVAILABLE',
+        status: ProductStatus.AVAILABLE,
         statusUpdatedAt: new Date(),
       },
     });
@@ -138,9 +139,9 @@ describe('ProductVariationService', () => {
         name: 'To Be Deleted',
         productId: product.id,
         price: 120,
-        currencyCode: 'USD',
+        currencyCode: CurrencyCode.USD,
         availableStock: 3,
-        status: 'AVAILABLE',
+        status: ProductStatus.AVAILABLE,
         statusUpdatedAt: new Date(),
       },
     });
@@ -156,6 +157,8 @@ describe('ProductVariationService', () => {
   });
 
   it('should throw if trying to delete non-existing variation', async () => {
-    await expect(service.delete(uuidv4())).rejects.toThrow(NotFoundException);
+    await expect(service.delete(uuidv4())).rejects.toThrow(
+      PrismaClientKnownRequestError,
+    );
   });
 });

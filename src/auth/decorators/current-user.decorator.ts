@@ -14,6 +14,6 @@ export const CurrentUser = createParamDecorator(
     }
 
     const gqlCtx = GqlExecutionContext.create(context).getContext<GqlContext>();
-    return gqlCtx.req.user;
+    return gqlCtx.req.authPayload;
   },
 );

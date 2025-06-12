@@ -40,28 +40,28 @@ export class OrderHeaderResolver {
   @UseGuards(GqlAuthGuard)
   @Mutation(() => OrderHeader)
   async createOrder(
-    @CurrentUser() @ValidCustomerPayload() user: JwtPayload,
+    @CurrentUser() @ValidCustomerPayload() authPayload: JwtPayload,
     @Args('notes', { nullable: true }) notes?: string,
   ): Promise<OrderHeaderEntity> {
-    return this.orderHeaderService.createOrder(user, notes);
+    return this.orderHeaderService.createOrder(authPayload, notes);
   }
 
   @UseGuards(GqlAuthGuard)
   @Mutation(() => OrderHeader)
   async updateOrder(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() authPayload: JwtPayload,
     @Args('orderId') orderId: string,
     @Args('input') input: UpdateOrderHeaderInput,
   ): Promise<OrderHeaderEntity> {
-    return this.orderHeaderService.updateOrder(user, orderId, input);
+    return this.orderHeaderService.updateOrder(authPayload, orderId, input);
   }
 
   @UseGuards(GqlAuthGuard)
   @Mutation(() => OrderHeader)
   async anulateOrder(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() authPayload: JwtPayload,
     @Args('orderId') orderId: string,
   ): Promise<OrderHeaderEntity> {
-    return this.orderHeaderService.anulateOrder(user, orderId);
+    return this.orderHeaderService.anulateOrder(authPayload, orderId);
   }
 }

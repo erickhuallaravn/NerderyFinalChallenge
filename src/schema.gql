@@ -2,57 +2,15 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
-input AddToShopCartInput {
-  productVariationId: String!
-  quantity: Int!
-}
-
-input AddVariationFeatureInput {
-  optionCode: String!
-  productVariationId: String!
-  valueCode: String!
-}
-
-input CreateOrderItemDiscountInput {
-  bonusQuantity: Float
-  discountPercentage: Float
-  orderDetailId: String!
-  promotionalDiscountId: String!
-  requiredAmount: Float!
-}
-
-input CreateProductInput {
-  description: String
-  name: String!
-}
-
-input CreateProductVariationInput {
-  availableStock: Float!
-  currencyCode: String!
-  features: [UpdateVariationFeatureInput!]!
-  name: String!
-  price: Float!
-  productId: ID!
-}
-
-input CreatePromotionalDiscountInput {
-  availableStock: Float
-  bonusQuantity: Float
-  discountPercentage: Float
-  discountType: String!
-  name: String!
-  productVariationId: String!
-  requiredAmount: Float!
-  validUntil: DateTime
-}
-
-type Customer {
-  address: String!
-  birthday: DateTime!
-  firstName: String!
+type ProductFile {
   id: ID!
-  lastName: String!
-  phoneNumber: String!
+  productVariationId: String!
+  fileExtension: String!
+  url: String!
+  altText: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  productVariation: ProductVariation!
 }
 
 """
@@ -60,67 +18,129 @@ A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date
 """
 scalar DateTime
 
-type Feature {
-  id: ID!
-  optionValue: OptionValue!
-  optionValueId: String!
-  productVariation: ProductVariation!
-  productVariationId: String!
-}
-
-type Mutation {
-  addFeature(input: AddVariationFeatureInput!): Feature!
-  addOrUpdateCartItem(input: AddToShopCartInput!): Boolean!
-  anulateOrder(orderId: String!): OrderHeader!
-  createOrder(notes: String): OrderHeader!
-  createProduct(input: CreateProductInput!): Product!
-  createProductVariation(input: CreateProductVariationInput!): ProductVariation!
-  createPromotionalDiscount(input: CreatePromotionalDiscountInput!): PromotionalDiscount!
-  deleteFeature(featureId: ID!): Boolean!
-  deleteOrderItem(itemId: String!): OrderItem!
-  deleteProduct(product_id: ID!): Boolean!
-  deleteProductFile(productFileId: String!): Boolean!
-  deleteProductVariation(productVariationId: ID!): Boolean!
-  deletePromotionalDiscount(id: String!): Boolean!
-  emptyCart: Boolean!
-  markVariationAsLiked(productVariationId: ID!): Boolean!
-  updateOrder(input: UpdateOrderHeaderInput!, orderId: String!): OrderHeader!
-  updateOrderItem(input: UpdateOrderItemInput!, itemId: String!): OrderItem!
-  updateProduct(input: UpdateProductInput!): Product!
-  updateProductVariation(input: UpdateProductVariationInput!): ProductVariation!
-  uploadProductFile(input: UploadProductFileInput!): ProductFile!
-}
-
 type Option {
-  code: String!
-  createdAt: DateTime!
   id: ID!
   name: String!
-  updatedAt: DateTime!
+  code: String!
   values: OptionValue!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
 type OptionValue {
-  code: String!
-  createdAt: DateTime!
   id: ID!
   name: String!
-  option: Option!
+  code: String!
   optionId: String!
+  option: Option!
+  variations: Feature!
+  createdAt: DateTime!
+  updatedAt: DateTime!
   status: String!
   statusUpdatedAt: DateTime!
-  updatedAt: DateTime!
-  variations: Feature!
 }
 
-type OrderHeader {
-  createdAt: DateTime!
-  customer: Customer!
+type Feature {
   id: ID!
-  orderItems: [OrderItem!]!
-  statusHistory: [OrderHeaderStatusHistory!]!
-  subtotal: Float!
+  optionValueId: String!
+  productVariationId: String!
+  optionValue: OptionValue!
+  productVariation: ProductVariation!
+}
+
+type ProductVariation {
+  id: ID!
+  name: String!
+  price: Float!
+  currencyCode: String!
+  availableStock: Float!
+  product: Product!
+  createdAt: DateTime!
   updatedAt: DateTime
+  status: String!
+  statusUpdatedAt: DateTime!
+  productFiles: [ProductFile!]!
+  features: [Feature!]!
+}
+
+type Product {
+  id: ID!
+  name: String!
+  description: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  status: String!
+  statusUpdatedAt: DateTime!
+  variations: [ProductVariation!]!
+}
+
+type ShopCartItemDiscount {
+  id: ID!
+  requiredAmount: Int!
+  discountPercentage: Float
+  bonusQuantity: Float
+  createdAt: DateTime!
+  updatedAt: DateTime
+}
+
+type ShopCartItem {
+  id: ID!
+  shoppingCartHeaderId: String!
+  productVariationId: String!
+  productName: String!
+  quantity: Int!
+  subtotal: Float!
+  createdAt: DateTime!
+  updatedAt: DateTime
+  itemDiscounts: [ShopCartItemDiscount!]!
+}
+
+type PromotionalDiscount {
+  id: ID!
+  name: String!
+  productVariationId: String!
+  discountType: String!
+  requiredAmount: Float!
+  bonusQuantity: Float
+  discountPercentage: Float
+  validSince: DateTime
+  validUntil: DateTime
+  availableStock: Float
+  createdAt: DateTime!
+  updatedAt: DateTime
+  status: String!
+  statusUpdatedAt: DateTime!
+}
+
+type Customer {
+  id: ID!
+  firstName: String!
+  lastName: String!
+  address: String!
+  phoneNumber: String!
+  birthday: DateTime!
+}
+
+type OrderItemDiscount {
+  id: ID!
+  orderDetailId: String!
+  promotionalDiscountId: String!
+  productName: String!
+  requiredAmount: Int!
+  discountPercentage: Float!
+  bonusQuantity: Int!
+  customer: Customer!
+}
+
+type OrderItem {
+  id: ID!
+  productName: String!
+  quantity: Int!
+  subtotal: Float!
+  createdAt: DateTime!
+  updatedAt: DateTime
+  customer: Customer!
+  itemDiscounts: [OrderItemDiscount!]!
 }
 
 type OrderHeaderStatusHistory {
@@ -130,154 +150,76 @@ type OrderHeaderStatusHistory {
   statusUpdatedAt: DateTime!
 }
 
-type OrderItem {
-  createdAt: DateTime!
-  customer: Customer!
+type OrderHeader {
   id: ID!
-  itemDiscounts: [OrderItemDiscount!]!
-  productName: String!
-  quantity: Int!
+  customer: Customer!
   subtotal: Float!
+  orderItems: [OrderItem!]!
+  statusHistory: [OrderHeaderStatusHistory!]!
+  createdAt: DateTime!
   updatedAt: DateTime
-}
-
-type OrderItemDiscount {
-  bonusQuantity: Int!
-  customer: Customer!
-  discountPercentage: Float!
-  id: ID!
-  orderDetailId: String!
-  productName: String!
-  promotionalDiscountId: String!
-  requiredAmount: Int!
-}
-
-type Product {
-  createdAt: DateTime!
-  description: String!
-  id: ID!
-  name: String!
-  status: String!
-  statusUpdatedAt: DateTime!
-  updatedAt: DateTime!
-  variations: [ProductVariation!]!
-}
-
-type ProductFile {
-  altText: String!
-  createdAt: DateTime!
-  fileExtension: String!
-  id: ID!
-  productVariation: ProductVariation!
-  productVariationId: String!
-  updatedAt: DateTime!
-  url: String!
-}
-
-type ProductVariation {
-  availableStock: Float!
-  createdAt: DateTime!
-  currencyCode: String!
-  features: [Feature!]!
-  id: ID!
-  name: String!
-  price: Float!
-  product: Product!
-  productFiles: [ProductFile!]!
-  status: String!
-  statusUpdatedAt: DateTime!
-  updatedAt: DateTime
-}
-
-type PromotionalDiscount {
-  availableStock: Float
-  bonusQuantity: Float
-  createdAt: DateTime!
-  discountPercentage: Float
-  discountType: String!
-  id: ID!
-  name: String!
-  productVariationId: String!
-  requiredAmount: Float!
-  status: String!
-  statusUpdatedAt: DateTime!
-  updatedAt: DateTime
-  validSince: DateTime
-  validUntil: DateTime
 }
 
 type Query {
-  getItemsByOrder(itemId: String!): OrderItem!
   getLikedProducts: [Product!]!
-  getMyCartItems: [ShopCartItem!]!
-  getMyOrders: [OrderHeader!]!
-  getOrderItem(itemId: String!): OrderItem!
-  getOrders: [OrderHeader!]!
-  getProductById(product_id: ID!): Product!
   getProducts(input: SearchPaginateProductInput): [Product!]!
+  getProductById(product_id: ID!): Product!
+  getMyCartItems: [ShopCartItem!]!
   getPromotionsByProduct(productVariationId: String!): [PromotionalDiscount!]!
+  getOrders: [OrderHeader!]!
+  getMyOrders: [OrderHeader!]!
+  getItemsByOrder(itemId: String!): OrderItem!
+  getOrderItem(itemId: String!): OrderItem!
 }
 
 input SearchPaginateProductInput {
+  search: String
   limit: Int
   offset: Int
-  search: String
 }
 
-type ShopCartItem {
-  createdAt: DateTime!
-  id: ID!
-  itemDiscounts: [ShopCartItemDiscount!]!
-  productName: String!
-  productVariationId: String!
-  quantity: Int!
-  shoppingCartHeaderId: String!
-  subtotal: Float!
-  updatedAt: DateTime
+type Mutation {
+  createProduct(input: CreateProductInput!): Product!
+  updateProduct(input: UpdateProductInput!): Product!
+  deleteProduct(product_id: ID!): Boolean!
+  createProductVariation(input: CreateProductVariationInput!): ProductVariation!
+  updateProductVariation(input: UpdateProductVariationInput!): ProductVariation!
+  deleteProductVariation(productVariationId: ID!): Boolean!
+  markVariationAsLiked(productVariationId: ID!): Boolean!
+  uploadProductFile(input: UploadProductFileInput!): ProductFile!
+  deleteProductFile(productFileId: String!): Boolean!
+  addFeature(input: AddVariationFeatureInput!): Feature!
+  deleteFeature(featureId: ID!): Boolean!
+  addOrUpdateCartItem(input: AddToShopCartInput!): Boolean!
+  emptyCart: Boolean!
+  createPromotionalDiscount(input: CreatePromotionalDiscountInput!): PromotionalDiscount!
+  deletePromotionalDiscount(id: String!): Boolean!
+  createOrder(notes: String): OrderHeader!
+  updateOrder(orderId: String!, input: UpdateOrderHeaderInput!): OrderHeader!
+  anulateOrder(orderId: String!): OrderHeader!
+  updateOrderItem(itemId: String!, input: UpdateOrderItemInput!): OrderItem!
+  deleteOrderItem(itemId: String!): OrderItem!
 }
 
-type ShopCartItemDiscount {
-  bonusQuantity: Float
-  createdAt: DateTime!
-  discountPercentage: Float
-  id: ID!
-  requiredAmount: Int!
-  updatedAt: DateTime
-}
-
-input UpdateOrderHeaderInput {
-  customerId: String
-  notes: String
-  status: String!
-  subtotal: Float
-}
-
-input UpdateOrderItemInput {
-  currencyCode: String
-  id: String!
-  itemDiscounts: [CreateOrderItemDiscountInput!]
-  orderHeaderId: String
-  productName: String
-  productVariationId: String
-  quantity: Float
-  subtotal: Float
+input CreateProductInput {
+  name: String!
+  description: String
 }
 
 input UpdateProductInput {
-  description: String
-  name: String
   productId: ID!
+  name: String
+  description: String
   status: String
 }
 
-input UpdateProductVariationInput {
-  availableStock: Int
-  currencyCode: String
-  features: [UpdateVariationFeatureInput!]
-  name: String
-  price: Float
-  productVariationId: ID!
-  status: String
+input CreateProductVariationInput {
+  productId: ID!
+  name: String!
+  price: Float!
+  currencyCode: String!
+  availableStock: Float!
+  features: [UpdateVariationFeatureInput!]!
 }
 
 input UpdateVariationFeatureInput {
@@ -285,11 +227,69 @@ input UpdateVariationFeatureInput {
   valueCode: String!
 }
 
+input UpdateProductVariationInput {
+  productVariationId: ID!
+  name: String
+  price: Float
+  currencyCode: String
+  availableStock: Int
+  features: [UpdateVariationFeatureInput!]
+  status: String
+}
+
+input UploadProductFileInput {
+  file: Upload!
+  productVariationId: String!
+  altText: String!
+}
+
 """The `Upload` scalar type represents a file upload."""
 scalar Upload
 
-input UploadProductFileInput {
-  altText: String!
-  file: Upload!
+input AddVariationFeatureInput {
+  optionCode: String!
+  valueCode: String!
   productVariationId: String!
+}
+
+input AddToShopCartInput {
+  productVariationId: String!
+  quantity: Int!
+}
+
+input CreatePromotionalDiscountInput {
+  name: String!
+  productVariationId: String!
+  discountType: String!
+  requiredAmount: Float!
+  bonusQuantity: Float
+  discountPercentage: Float
+  validUntil: DateTime
+  availableStock: Float
+}
+
+input UpdateOrderHeaderInput {
+  customerId: String
+  subtotal: Float
+  notes: String
+  status: String!
+}
+
+input UpdateOrderItemInput {
+  orderHeaderId: String
+  productVariationId: String
+  quantity: Float
+  subtotal: Float
+  currencyCode: String
+  productName: String
+  itemDiscounts: [CreateOrderItemDiscountInput!]
+  id: String!
+}
+
+input CreateOrderItemDiscountInput {
+  orderDetailId: String!
+  promotionalDiscountId: String!
+  requiredAmount: Float!
+  discountPercentage: Float
+  bonusQuantity: Float
 }
