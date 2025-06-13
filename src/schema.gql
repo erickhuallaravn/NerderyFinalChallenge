@@ -189,7 +189,7 @@ type Mutation {
   uploadProductFile(input: UploadProductFileInput!): ProductFile!
   deleteProductFile(productFileId: String!): Boolean!
   addFeature(input: AddVariationFeatureInput!): Feature!
-  deleteFeature(featureId: ID!): Boolean!
+  deleteFeature(input: DeleteVariationFeatureInput!): Boolean!
   addOrUpdateCartItem(input: AddToShopCartInput!): Boolean!
   emptyCart: Boolean!
   createPromotionalDiscount(input: CreatePromotionalDiscountInput!): PromotionalDiscount!
@@ -249,6 +249,11 @@ scalar Upload
 input AddVariationFeatureInput {
   optionCode: String!
   valueCode: String!
+  productVariationId: String!
+}
+
+input DeleteVariationFeatureInput {
+  optionValueId: String!
   productVariationId: String!
 }
 

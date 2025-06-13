@@ -11,6 +11,8 @@ import { JwtPayload } from '../types/jwt-payload.type';
 import { User, UserType } from '@prisma/client';
 import { ManagerSignUpInput } from '../dtos/requests/signup/managerSignup.input';
 import { ResetPasswordInput } from '../dtos/requests/resetPassword/resetPassword.input';
+import * as bcrypt from 'bcrypt';
+import { PASSWORD_ENCRYPT_ROUNDS } from 'src/common/constants/app.constants';
 
 @Injectable()
 export class AuthService {
@@ -21,6 +23,10 @@ export class AuthService {
     private readonly mailerService: MailerService,
     private readonly prisma: PrismaService,
   ) {}
+
+  async hashPassword(unhashedPassword: string): Promise<string> {
+    return await bcrypt.hash(unhashedPassword, PASSWORD_ENCRYPT_ROUNDS);
+  }
 
   async login(authCredentials: LogInInput): Promise<string> {
     const { email, password } = authCredentials;

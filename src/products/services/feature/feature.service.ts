@@ -4,6 +4,7 @@ import { OptionValueService } from './option-value.service';
 import { Feature, RowStatus } from '@prisma/client';
 import { AddVariationFeatureInput } from '../../dtos/requests/variation/add-variation-feature.input';
 import { Prisma } from '@prisma/client';
+import { DeleteVariationFeatureInput } from 'src/products/dtos/requests/variation/delete-variation-feature.input';
 
 @Injectable()
 export class FeatureService {
@@ -65,9 +66,19 @@ export class FeatureService {
     });
   }
 
-  async delete(featureId: string): Promise<boolean> {
+  async delete(input: DeleteVariationFeatureInput): Promise<boolean> {
+    const optionValue = await this.prisma.optionValue.findUniqueOrThrow({
+      where: {
+        id: input.optionValueId,
+      },
+    });
     await this.prisma.feature.update({
-      where: { id: featureId },
+      where: {
+        productVariationId_optionValueId: {
+          productVariationId: input.productVariationId,
+          optionValueId: optionValue.id,
+        },
+      },
       data: {
         status: RowStatus.DELETED,
         statusUpdatedAt: new Date(),

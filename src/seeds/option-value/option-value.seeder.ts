@@ -1,38 +1,28 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { ProductStatus } from '@prisma/client';
+import { RowStatus } from '@prisma/client';
 
 @Injectable()
-export class ProductSeeder {
+export class OptionValueSeeder {
   constructor(private readonly prisma: PrismaService) {}
 
   async run() {
-    await this.ensureBasicOptions();
-    const product = await this.prisma.product.findFirst();
-    if (product === null) {
-      return this.prisma.product.create({
-        data: {
-          name: 'Test Product',
-          description: 'A product with 3 variations for testing.',
-          status: ProductStatus.AVAILABLE,
-          statusUpdatedAt: new Date(),
-        },
-      });
-    }
-    return product;
-  }
-
-  private async ensureBasicOptions() {
     const color = await this.prisma.option.upsert({
       where: { code: 'COLOR' },
       update: {},
-      create: { name: 'Color', code: 'COLOR' },
+      create: {
+        name: 'Color',
+        code: 'COLOR',
+      },
     });
 
     const size = await this.prisma.option.upsert({
       where: { code: 'SIZE' },
       update: {},
-      create: { name: 'Size', code: 'SIZE' },
+      create: {
+        name: 'Size',
+        code: 'SIZE',
+      },
     });
 
     const values = [
@@ -57,7 +47,7 @@ export class ProductSeeder {
           name: value.name,
           code: value.code,
           optionId: value.optionId,
-          status: 'ACTIVE',
+          status: RowStatus.ACTIVE,
           statusUpdatedAt: new Date(),
         },
       });

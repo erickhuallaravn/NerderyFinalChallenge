@@ -6,6 +6,28 @@ import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { PASSWORD_ENCRYPT_ROUNDS } from 'src/common/constants/app.constants';
 import { RowStatus, UserType } from '@prisma/client';
+import { LogInInput } from 'src/auth/dtos/requests/login/login.input';
+
+const customerRegisterInfo: CustomerSignUpInput = {
+  firstName: 'Default',
+  lastName: 'Customer',
+  email: 'customer@login.com',
+  password: 'customerPassword',
+};
+const managerRegisterInfo: ManagerSignUpInput = {
+  firstName: 'Default',
+  lastName: 'Manager',
+  email: 'default_manager@test.com',
+  password: 'managerPassword',
+};
+export const seededCustomerLogInInput: LogInInput = {
+  email: customerRegisterInfo.email,
+  password: customerRegisterInfo.password,
+};
+export const seededManagerLogInInput: LogInInput = {
+  email: managerRegisterInfo.email,
+  password: managerRegisterInfo.password,
+};
 
 @Injectable()
 export class UserSeeder {
@@ -19,23 +41,6 @@ export class UserSeeder {
     const customerRole = await this.prisma.role.findFirstOrThrow({
       where: { name: 'STANDARD_CUSTOMER_ROLE' },
     });
-
-    const customerPassword = 'customerPassword';
-    const managerPassword = 'managerPassword';
-
-    const customerRegisterInfo: CustomerSignUpInput = {
-      firstName: 'Default',
-      lastName: 'Customer',
-      email: 'default_customer@test.com',
-      password: customerPassword,
-    };
-
-    const managerRegisterInfo: ManagerSignUpInput = {
-      firstName: 'Default',
-      lastName: 'Manager',
-      email: 'default_manager@test.com',
-      password: managerPassword,
-    };
 
     const customerTokenVersion = uuidv4();
     const customerPasswordHash = await bcrypt.hash(

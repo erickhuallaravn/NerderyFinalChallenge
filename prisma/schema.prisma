@@ -125,7 +125,6 @@ model OptionValue {
 }
 
 model Feature {
-  id                 String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   optionValueId      String @db.Uuid
   productVariationId String @map("product_variation_id") @db.Uuid
 
@@ -135,6 +134,7 @@ model Feature {
   status          RowStatus
   statusUpdatedAt DateTime  @map("status_updated_at") @db.Timestamp(6)
 
+  @@unique([productVariationId, optionValueId])
   @@map("feature")
   @@schema("catalog")
 }

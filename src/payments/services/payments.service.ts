@@ -58,7 +58,7 @@ export class PaymentsService {
   }
 
   async markOrderAsPaid(orderId: string): Promise<void> {
-    const alreadyPaid = await this.prisma.orderHeader.findFirstOrThrow({
+    const alreadyPaid = await this.prisma.orderHeader.findFirst({
       where: {
         id: orderId,
         statusHistory: {

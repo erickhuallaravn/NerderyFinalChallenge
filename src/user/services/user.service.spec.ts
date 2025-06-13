@@ -108,13 +108,11 @@ describe('UserService', () => {
   it('should create a new user with STANDARD_CUSTOMER role', async () => {
     await createStandardRole();
 
-    const result = await service.create({
-      newUserInfo: {
-        firstName: 'Alice',
-        lastName: 'Smith',
-        email: 'alice@example.com',
-        password: 'secure-password',
-      },
+    const result = await service.createCustomer({
+      firstName: 'Alice',
+      lastName: 'Smith',
+      email: 'alice@example.com',
+      password: 'secure-password',
     });
 
     expect(result.email).toBe('alice@example.com');
@@ -144,26 +142,22 @@ describe('UserService', () => {
     });
 
     await expect(
-      service.create({
-        newUserInfo: {
-          firstName: 'Bob',
-          lastName: 'Jones',
-          email: 'taken@example.com',
-          password: '123456',
-        },
+      service.createCustomer({
+        firstName: 'Bob',
+        lastName: 'Jones',
+        email: 'taken@example.com',
+        password: '123456',
       }),
     ).rejects.toThrow(ConflictException);
   });
 
   it('should throw NotFoundException if role not found', async () => {
     await expect(
-      service.create({
-        newUserInfo: {
-          firstName: 'NoRole',
-          lastName: 'User',
-          email: 'norole@example.com',
-          password: 'abc123',
-        },
+      service.createCustomer({
+        firstName: 'NoRole',
+        lastName: 'User',
+        email: 'norole@example.com',
+        password: 'abc123',
       }),
     ).rejects.toThrow(NotFoundException);
   });

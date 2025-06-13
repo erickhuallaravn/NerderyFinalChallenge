@@ -5,6 +5,7 @@ import { OptionValueService } from './option-value.service';
 import { AddVariationFeatureInput } from '../../dtos/requests/variation/add-variation-feature.input';
 import { ProductModule } from 'src/products/products.module';
 import { CurrencyCode } from '@prisma/client';
+import { v4 as uuidv4 } from 'uuid';
 
 describe('FeatureService', () => {
   let service: FeatureService;
@@ -107,7 +108,6 @@ describe('FeatureService', () => {
       },
     });
 
-    // Crear el optionValue con el servicio real
     const optionValue = await optionValueService.findOrCreateValue('size', 'M');
 
     const existingFeature = await prisma.feature.create({
@@ -128,7 +128,8 @@ describe('FeatureService', () => {
     const result = await service.create(input);
 
     expect(result).toBeDefined();
-    expect(result.id).toBe(existingFeature.id);
+    expect(result.optionValueId).toBe(existingFeature.optionValueId);
+    expect(result.productVariationId).toBe(existingFeature.optionValueId);
   });
 
   it('should soft delete a feature', async () => {
@@ -174,12 +175,20 @@ describe('FeatureService', () => {
       },
     });
 
-    const result = await service.delete(feature.id);
+    const result = await service.delete({
+      optionValueId: feature.optionValueId,
+      productVariationId: feature.productVariationId,
+    });
 
     expect(result).toBe(true);
 
     const updatedFeature = await prisma.feature.findUnique({
-      where: { id: feature.id },
+      where: {
+        productVariationId_optionValueId: {
+          productVariationId: feature.productVariationId,
+          optionValueId: feature.optionValueId,
+        },
+      },
     });
 
     expect(updatedFeature?.status).toBe('DELETED');
@@ -237,11 +246,13 @@ describe('FeatureService', () => {
     const result = await service.create(input);
 
     expect(result).toBeDefined();
-    expect(result.id).not.toBe(deletedFeature.id);
+    expect(result).not.toBe(deletedFeature);
     expect(result.status).toBe('ACTIVE');
   });
 
   it('should return false when deleting a non-existent feature', async () => {
-    await expect(service.delete('non-existent-id')).rejects.toThrow();
+    await expect(
+      service.delete({ optionValueId: uuidv4(), productVariationId: uuidv4() }),
+    ).rejects.toThrow();
   });
 });

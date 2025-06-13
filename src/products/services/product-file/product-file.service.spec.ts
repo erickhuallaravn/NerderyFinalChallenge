@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Test, TestingModule } from '@nestjs/testing';
 import { ProductFileService } from './product-file.service';
 import { PrismaService } from 'src/prisma/prisma.service';

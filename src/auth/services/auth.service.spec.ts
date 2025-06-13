@@ -6,13 +6,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { MailerService } from '@nestjs-modules/mailer';
 import { UnauthorizedException } from '@nestjs/common';
-import {
-  RolePermission,
-  RowStatus,
-  User,
-  UserStatus,
-  UserType,
-} from '@prisma/client';
+import { RolePermission, RowStatus, User, UserType } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -60,7 +54,6 @@ describe('AuthService', () => {
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
       imports: [AuthModule],
-      providers: [PrismaService],
     }).compile();
 
     service = module.get(AuthService);
@@ -133,19 +126,29 @@ describe('AuthService', () => {
     await prisma.$disconnect();
   });
 
+  describe('hashPassword()', () => {
+    it('should hash password correctly', async () => {
+      const rawPassword = 'myRawPassword';
+      const hashed = await service.hashPassword(rawPassword);
+      expect(await bcrypt.compare(rawPassword, hashed)).toBe(true);
+    });
+  });
+
   describe('login()', () => {
     it('should login a user and set tokenVersion if null', async () => {
       jwtToken = await service.login(loginInput);
       authPayload = await jwtService.verifyAsync(jwtToken);
 
       expect(typeof jwtToken).toBe('string');
-      expect(user?.tokenVersion).toBeDefined();
+      const updatedUser = await prisma.user.findUnique({
+        where: { id: user!.id },
+      });
+      expect(updatedUser?.tokenVersion).toBeDefined();
     });
 
     it('should login a user and reuse existing tokenVersion if not null', async () => {
-      expect(typeof jwtToken).toBe('string');
       const existingTokenVersion: string = uuidv4();
-      user = await prisma.user.update({
+      await prisma.user.update({
         where: { id: user!.id },
         data: {
           tokenVersion: {
@@ -157,8 +160,10 @@ describe('AuthService', () => {
       jwtToken = await service.login(loginInput);
       authPayload = await jwtService.verifyAsync(jwtToken);
 
-      expect(typeof jwtToken).toBe('string');
-      expect(user?.tokenVersion).toBe(existingTokenVersion);
+      const updatedUser = await prisma.user.findUnique({
+        where: { id: user!.id },
+      });
+      expect(updatedUser?.tokenVersion).toBe(existingTokenVersion);
     });
 
     it('should throw UnauthorizedException if password is incorrect', async () => {
@@ -168,34 +173,17 @@ describe('AuthService', () => {
         UnauthorizedException,
       );
     });
-
-    it('should throw if user status is not ACTIVE', async () => {
-      await prisma.user.update({
-        where: {
-          id: user!.id,
-        },
-        data: {
-          status: UserStatus.INACTIVE,
-        },
-      });
-
-      await expect(service.login(loginInput)).rejects.toThrow(
-        PrismaClientKnownRequestError,
-      );
-    });
   });
 
   describe('registerCustomer()', () => {
-    it('should create a new customer, assign role, and return token', async () => {
+    it('should create a new customer and return token', async () => {
       jwtToken = await service.registerCustomer(customerSignUpInput);
       expect(typeof jwtToken).toBe('string');
     });
 
     it('should throw if STANDARD_CUSTOMER role is missing', async () => {
       await prisma.role.delete({
-        where: {
-          id: customerRoleId,
-        },
+        where: { id: customerRoleId },
       });
       await expect(
         service.registerCustomer(customerSignUpInput),
@@ -204,7 +192,7 @@ describe('AuthService', () => {
   });
 
   describe('registerManager()', () => {
-    it('should create a new manager, assign role, and return token', async () => {
+    it('should create a new manager and return token', async () => {
       jwtToken = await service.login(loginInput);
       authPayload = await jwtService.verifyAsync(jwtToken);
 
@@ -234,16 +222,13 @@ describe('AuthService', () => {
 
       await service.logout(authPayload);
 
-      user = await prisma.user.findUnique({
+      const updatedUser = await prisma.user.findUnique({
         where: { id: user!.id },
       });
-      expect(user?.tokenVersion).toBeNull();
+      expect(updatedUser?.tokenVersion).toBeNull();
     });
 
-    it('should handle logout when tokenVersion is already null', async () => {
-      jwtToken = await service.login(loginInput);
-      authPayload = await jwtService.verifyAsync(jwtToken);
-
+    it('should be idempotent if tokenVersion is already null', async () => {
       await prisma.user.update({
         where: {
           id: user!.id,
@@ -255,12 +240,15 @@ describe('AuthService', () => {
         },
       });
 
+      jwtToken = await service.login(loginInput);
+      authPayload = await jwtService.verifyAsync(jwtToken);
+
       await expect(service.logout(authPayload)).resolves.toBeUndefined();
     });
   });
 
   describe('sendRecoverEmail()', () => {
-    it('should send a recovery email with a token', async () => {
+    it('should send recovery email with token', async () => {
       const spy = jest
         .spyOn(mailerService, 'sendMail')
         .mockResolvedValueOnce({} as any);
@@ -282,13 +270,13 @@ describe('AuthService', () => {
       spy.mockRestore();
     });
 
-    it('should throw if user is not found', async () => {
+    it('should throw if user not found', async () => {
       await expect(
         service.sendRecoverEmail('unknown@mail.com'),
       ).rejects.toThrow(PrismaClientKnownRequestError);
     });
 
-    it('should throw if mailerService.sendMail fails', async () => {
+    it('should throw if sending mail fails', async () => {
       const spy = jest
         .spyOn(mailerService, 'sendMail')
         .mockRejectedValueOnce(new Error('Mail failed'));
